@@ -39,9 +39,18 @@ gh api 'repos/OWNER/REPO/actions/runs?per_page=100' --paginate > runs.json
 # no dependencies beyond the standard library:
 python -m toilaudit runs.json --rate 85 --out toil-report.md
 
+# or every repo of an org/user — concatenated exports load as one dataset:
+gh repo list OWNER --limit 200 --json nameWithOwner -q '.[].nameWithOwner' \
+  | xargs -I{} gh api 'repos/{}/actions/runs?per_page=100' --paginate > org-runs.json
+
+python -m toilaudit org-runs.json --out org-toil-report.md
+
 # or try the bundled sample:
 python -m toilaudit data/sample_runs.json
 ```
+
+Org mode aggregates by workflow *name*, so identically named workflows
+(`CI`, `release`) merge across repos in the costliest-workflows table.
 
 Output: a Markdown report with the bottom-line €, a per-signal cost table,
 the costliest workflows, and sample incidents to point at in the meeting.
