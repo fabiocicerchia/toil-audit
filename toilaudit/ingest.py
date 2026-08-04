@@ -33,6 +33,32 @@ class Run:
     created_at: datetime  # queued
     started_at: datetime  # picked up by a runner
     updated_at: datetime  # finished
+    repo: str = ""        # owner/name — empty for single-repo exports
+    path: str = ""        # .github/workflows/x.yml — the same file gets copied
+                          # into every repo, so it's the unit you actually fix
+    branch: str = ""      # head_branch — the next push here is the fix
+    actor: str = ""       # who triggered it; "...[bot]" is not a human
+    title: str = ""       # commit/PR subject — identical across repos means
+                          # one fix was pushed everywhere, not N diagnoses
+
+    @property
+    def is_human(self) -> bool:
+        return bool(self.actor) and not self.actor.endswith("[bot]")
+
+    @property
+    def label(self) -> str:
+        """Workflow identity for attribution: names collide across repos."""
+        return f"{self.repo}/{self.workflow}" if self.repo else self.workflow
+
+    @property
+    def template(self) -> str:
+        """Shared workflow file, across every repo that copied it."""
+        return self.path or self.workflow
+
+    @property
+    def commit(self) -> tuple[str, str]:
+        """A broken commit is triaged once, however many workflows go red."""
+        return (self.repo, self.head_sha)
 
     @property
     def queue_seconds(self) -> float:
@@ -59,6 +85,12 @@ def _to_run(obj: dict) -> Run:
         created_at=_ts(obj["created_at"]),
         started_at=_ts(obj.get("run_started_at") or obj["created_at"]),
         updated_at=_ts(obj["updated_at"]),
+        repo=(obj.get("repository") or {}).get("full_name", ""),
+        path=obj.get("path", ""),
+        branch=obj.get("head_branch") or "",
+        actor=(obj.get("triggering_actor") or {}).get("login", ""),
+        title=(obj.get("display_title")
+               or (obj.get("head_commit") or {}).get("message", "")).split("\n")[0],
     )
 
 
