@@ -15,6 +15,13 @@ from datetime import datetime
 from pathlib import Path
 
 
+# ponytail: GitHub's per-job wall-clock ceiling. `updated_at` is bumped whenever
+# the run *record* changes (log-retention cleanup, annotations), sometimes months
+# after the run ended — uncapped, a single stale record reads as 400 days of
+# runner time. Raise it if you legitimately run multi-hour pipelines.
+MAX_RUN_SECONDS = 6 * 3600
+
+
 @dataclass(frozen=True)
 class Run:
     run_id: int
@@ -33,7 +40,8 @@ class Run:
 
     @property
     def duration_seconds(self) -> float:
-        return max(0.0, (self.updated_at - self.started_at).total_seconds())
+        elapsed = max(0.0, (self.updated_at - self.started_at).total_seconds())
+        return min(elapsed, MAX_RUN_SECONDS)
 
 
 def _ts(value: str) -> datetime:
