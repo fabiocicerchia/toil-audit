@@ -20,7 +20,8 @@ DEFAULT_RUNNER_EUR_PER_MINUTE = 0.0074  # $0.008 converted, rounded
 @dataclass(frozen=True)
 class CostLine:
     kind: str
-    count: int
+    count: int            # events detected
+    charged_count: int    # events that cost a human — see FAILED_RUN dedup
     engineer_minutes: float
     engineer_cost_eur: float
     compute_minutes: float
@@ -57,6 +58,7 @@ def summarize_costs(
         line = CostLine(
             kind=kind,
             count=len(items),
+            charged_count=sum(1 for s in items if s.engineer_minutes),
             engineer_minutes=round(eng_min, 1),
             engineer_cost_eur=round(eng_min / 60 * hourly_rate_eur, 2),
             compute_minutes=round(comp_min, 1),

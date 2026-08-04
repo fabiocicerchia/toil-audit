@@ -35,15 +35,22 @@ def build_report(runs: list[Run], signals: list[Signal], summary: CostSummary,
         f"## Bottom line: **{_eur(summary.total_eur)}** of toil "
         f"({summary.total_engineer_minutes / 60:.1f} engineer-hours)",
         "",
-        "| Toil source | Events | Engineer time | Engineer € | Compute waste | Compute € |",
-        "|---|---:|---:|---:|---:|---:|",
+        "| Toil source | Events | Charged | Engineer time | Engineer € | Compute waste | Compute € |",
+        "|---|---:|---:|---:|---:|---:|---:|",
     ]
     for line in summary.lines:
+        charged = "—" if line.charged_count == line.count else f"{line.charged_count}"
         lines.append(
-            f"| {_KIND_LABELS.get(line.kind, line.kind)} | {line.count} "
+            f"| {_KIND_LABELS.get(line.kind, line.kind)} | {line.count} | {charged} "
             f"| {line.engineer_minutes:.0f} min | {_eur(line.engineer_cost_eur)} "
             f"| {line.compute_minutes:.0f} min | {_eur(line.compute_cost_eur)} |"
         )
+    lines += [
+        "",
+        "_Charged: failure triage is billed once per broken commit, not once per"
+        " red workflow — one bad push turns several workflows red and a human"
+        " reads the logs once._",
+    ]
 
     lines += ["", "## Costliest workflows", ""]
     for wf, eur in list(summary.by_workflow.items())[:8]:
