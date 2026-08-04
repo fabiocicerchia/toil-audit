@@ -33,9 +33,19 @@ class CostLine:
 
 
 @dataclass(frozen=True)
+class TemplateLine:
+    """One workflow file, summed over every repo that copied it."""
+    path: str
+    repos: int
+    total_eur: float
+
+
+@dataclass(frozen=True)
 class CostSummary:
     lines: list[CostLine]              # per signal kind, largest first
-    by_workflow: dict[str, float]      # workflow -> total EUR
+    by_workflow: dict[str, float]      # repo/workflow -> total EUR
+    by_template: list[TemplateLine]    # workflow file -> total EUR, largest first
+    by_month: dict[str, float]         # YYYY-MM -> total EUR, chronological
     total_engineer_minutes: float
     total_eur: float
 
@@ -47,6 +57,13 @@ def summarize_costs(
 ) -> CostSummary:
     per_kind: dict[str, list[Signal]] = defaultdict(list)
     by_workflow: dict[str, float] = defaultdict(float)
+    by_template: dict[str, float] = defaultdict(float)
+    template_repos: dict[str, set[str]] = defaultdict(set)
+    by_month: dict[str, float] = defaultdict(float)
+
+    def cost_of(s: Signal) -> float:
+        return (s.engineer_minutes / 60 * hourly_rate_eur
+                + s.wasted_compute_seconds / 60 * runner_eur_per_minute)
 
     for s in signals:
         per_kind[s.kind].append(s)
@@ -67,16 +84,23 @@ def summarize_costs(
         lines.append(line)
 
     for s in signals:
-        by_workflow[s.run.workflow] += (
-            s.engineer_minutes / 60 * hourly_rate_eur
-            + s.wasted_compute_seconds / 60 * runner_eur_per_minute
-        )
+        eur = cost_of(s)
+        by_workflow[s.run.label] += eur
+        by_template[s.run.template] += eur
+        template_repos[s.run.template].add(s.run.repo)
+        by_month[f"{s.run.created_at:%Y-%m}"] += eur
+
+    templates = [TemplateLine(p, len(template_repos[p]), round(v, 2))
+                 for p, v in by_template.items()]
+    templates.sort(key=lambda t: t.total_eur, reverse=True)
 
     lines.sort(key=lambda l: l.total_eur, reverse=True)
     return CostSummary(
         lines=lines,
         by_workflow={k: round(v, 2) for k, v in
                      sorted(by_workflow.items(), key=lambda kv: kv[1], reverse=True)},
+        by_template=templates,
+        by_month={k: round(by_month[k], 2) for k in sorted(by_month)},
         total_engineer_minutes=round(sum(l.engineer_minutes for l in lines), 1),
         total_eur=round(sum(l.total_eur for l in lines), 2),
     )
