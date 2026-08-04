@@ -12,6 +12,8 @@ Signals:
                    the scheduler.
 - QUEUE_STALL      run sat queued longer than the threshold; engineers
                    context-switch away and back.
+- ACTION_REQUIRED  the run is parked until a human clicks "approve and run":
+                   the pipeline is stopped and waiting on a person.
 - FAILED_RUN       charged once per broken commit — one bad push turns six
                    workflows red, but a human reads the logs once — and priced
                    from evidence, not from a constant: the interval between the
@@ -33,6 +35,7 @@ DEFAULT_MINUTES = {
                               # Give it the FAILED_RUN treatment if it ever
                               # grows past a rounding error in the total.
     "FAILED_RUN": 8.0,        # read logs, decide — now a *ceiling*, see below
+    "ACTION_REQUIRED": 5.0,   # notice it is parked, review, approve
 }
 QUEUE_STALL_SECONDS = 900  # 15 min
 
@@ -178,6 +181,13 @@ def detect_signals(
                     f"'{run.label}' red->green on same sha {run.head_sha[:7]}",
                     minutes["FLAKY_RECOVERY"],
                 ))
+
+        if run.conclusion == "action_required":
+            signals.append(Signal(
+                "ACTION_REQUIRED", run,
+                f"'{run.label}' parked waiting for approval",
+                minutes["ACTION_REQUIRED"],
+            ))
 
         if run.event == "workflow_dispatch":
             signals.append(Signal(

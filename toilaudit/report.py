@@ -12,6 +12,7 @@ _KIND_LABELS = {
     "MANUAL_DISPATCH": "Manual dispatches",
     "QUEUE_STALL": "Queue stalls (>15 min)",
     "FAILED_RUN": "Failure triage",
+    "ACTION_REQUIRED": "Runs parked for approval",
 }
 
 
