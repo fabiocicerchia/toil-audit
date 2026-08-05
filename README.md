@@ -42,7 +42,18 @@ python -m toilaudit org-runs.json --out org-toil-report.md
 
 # or try the bundled sample:
 python -m toilaudit data/sample_runs.json
+
+# GitLab CI:
+glab api 'projects/:id/pipelines?per_page=100' --paginate > pipelines.json
+python -m toilaudit pipelines.json --provider gitlab
 ```
+
+**GitLab note.** GitLab has no run-attempt counter — pressing "retry" creates a
+*new pipeline on the same commit* — so attempts are derived by grouping
+pipelines on (project, sha, ref) in creation order. The list endpoint also
+omits `started_at`/`finished_at`; without them queue time reads as zero rather
+than being invented. Export from `/pipelines/:id` if you want real queue
+figures.
 
 Org mode aggregates by workflow *name*, so identically named workflows
 (`CI`, `release`) merge across repos in the costliest-workflows table.
