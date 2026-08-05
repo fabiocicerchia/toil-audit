@@ -1,12 +1,13 @@
-"""Load CI runs from a GitHub Actions workflow-runs export.
+"""Load CI runs from a GitHub Actions or GitLab CI export.
 
-Input is the JSON you get from:
+    gh   api 'repos/OWNER/REPO/actions/runs?per_page=100' --paginate > runs.json
+    glab api 'projects/:id/pipelines?per_page=100'        --paginate > pipelines.json
 
-    gh api 'repos/OWNER/REPO/actions/runs?per_page=100' --paginate > runs.json
-
-Accepts either the raw API shape ({"workflow_runs": [...]}, possibly
-concatenated pages) or a plain JSON array of run objects. Only fields the
-signal detectors need are kept.
+Both normalise onto one `Run` shape, so `signals` and `costing` never learn
+which CI system produced a row. Where the two systems genuinely differ — GitLab
+has no run-attempt counter, and its list endpoint omits start/finish times —
+the difference is resolved here and documented at the point it is resolved,
+rather than leaking a second vocabulary into the detectors.
 """
 
 import json
@@ -94,6 +95,121 @@ def _to_run(obj: dict) -> Run:
     )
 
 
+# GitLab status -> the GitHub vocabulary the signal detectors speak.
+# `manual` is deliberately `action_required`: a pipeline parked on a manual job
+# is precisely "waiting for a human to press something", which is the toil the
+# GitHub side calls action_required.
+_GITLAB_STATUS = {
+    "success": "success",
+    "failed": "failure",
+    "canceled": "cancelled",
+    "cancelled": "cancelled",
+    "manual": "action_required",
+    "skipped": "skipped",
+}
+
+# GitLab pipeline `source` -> GitHub `event`. `web` is a pipeline started by
+# hand from the UI, which is what workflow_dispatch means on the GitHub side,
+# so the manual-trigger signal fires for both.
+_GITLAB_SOURCE = {
+    "push": "push",
+    "merge_request_event": "pull_request",
+    "schedule": "schedule",
+    "web": "workflow_dispatch",
+    "api": "workflow_dispatch",
+    "trigger": "workflow_dispatch",
+}
+
+_TERMINAL = {"success", "failure", "cancelled", "action_required", "skipped"}
+
+
+def _gitlab_repo(obj: dict) -> str:
+    """`https://gitlab.com/group/sub/project/-/pipelines/61` -> `group/sub/project`."""
+    url = obj.get("web_url") or ""
+    if "/-/pipelines" in url:
+        path = url.split("://", 1)[-1].split("/-/pipelines", 1)[0]
+        return path.split("/", 1)[1] if "/" in path else ""
+    project = obj.get("project_id")
+    return f"project-{project}" if project else ""
+
+
+def _to_gitlab_run(obj: dict, attempt: int) -> Run:
+    created = _ts(obj["created_at"])
+    started = _ts(obj["started_at"]) if obj.get("started_at") else created
+    finished = _ts(obj["finished_at"]) if obj.get("finished_at") else _ts(obj["updated_at"])
+    user = obj.get("user") or {}
+    return Run(
+        run_id=obj["id"],
+        workflow=obj.get("name") or ".gitlab-ci.yml",
+        event=_GITLAB_SOURCE.get(obj.get("source", ""), obj.get("source", "unknown")),
+        conclusion=_GITLAB_STATUS.get(obj.get("status", ""), obj.get("status", "unknown")),
+        run_attempt=attempt,
+        head_sha=obj.get("sha", ""),
+        created_at=created,
+        started_at=started,
+        updated_at=finished,
+        repo=_gitlab_repo(obj),
+        path=".gitlab-ci.yml",   # one pipeline definition per project, by design
+        branch=obj.get("ref") or "",
+        actor=user.get("username", ""),
+        title=(obj.get("name") or "").split("\n")[0],
+    )
+
+
+def load_gitlab_runs(path: str | Path) -> list[Run]:
+    """Load GitLab CI pipelines and normalise them onto the same `Run` shape.
+
+    Input is the JSON from:
+
+        glab api 'projects/:id/pipelines?per_page=100' --paginate > pipelines.json
+
+    Accepts a JSON array, concatenated pages, or an object with a `pipelines`
+    key. The **detail** endpoint (`/pipelines/:id`) additionally carries
+    `started_at`, `finished_at` and `user`; when those are absent the list
+    shape's `created_at`/`updated_at` are used, which makes queue time zero
+    rather than invented.
+
+    **Attempts are derived, not read.** GitLab has no `run_attempt`: pressing
+    "retry" produces a *new pipeline on the same commit*. Pipelines are grouped
+    by (repo, sha, ref) and numbered in creation order, so the second pipeline
+    on a commit is attempt 2 — which is what the re-run signal is counting.
+    """
+    raw = _load_json_pages(path, "pipelines")
+    ordered = sorted((o for o in raw if o.get("status") in _GITLAB_STATUS),
+                     key=lambda o: o["created_at"])
+    attempts: dict[tuple, int] = {}
+    runs = []
+    for obj in ordered:
+        key = (_gitlab_repo(obj), obj.get("sha", ""), obj.get("ref", ""))
+        attempts[key] = attempts.get(key, 0) + 1
+        runs.append(_to_gitlab_run(obj, attempts[key]))
+    runs.sort(key=lambda r: r.created_at)
+    return runs
+
+
+def _load_json_pages(path: str | Path, key: str) -> list[dict]:
+    """A JSON array, concatenated `--paginate` pages, or {"<key>": [...]}.
+
+    One decoder loop covers all three: `--paginate` concatenates whole documents
+    with nothing between them, so `json.loads` on the whole file fails on the
+    second one. Reading document by document is the only shape that works for
+    every export at once.
+    """
+    text = Path(path).read_text().strip()
+    out: list[dict] = []
+    decoder, pos = json.JSONDecoder(), 0
+    while pos < len(text):
+        obj, offset = decoder.raw_decode(text, pos)
+        if isinstance(obj, list):
+            out.extend(obj)
+        elif isinstance(obj, dict):
+            out.extend(obj.get(key, []))
+        pos = offset
+        while pos < len(text) and text[pos] in " \r\n\t":
+            pos += 1
+    return out
+
+
 def load_runs(path: str | Path) -> list[Run]:
     text = Path(path).read_text().strip()
     if text.startswith("["):
@@ -112,3 +228,6 @@ def load_runs(path: str | Path) -> list[Run]:
     runs = [_to_run(o) for o in raw if o.get("status") == "completed"]
     runs.sort(key=lambda r: r.created_at)
     return runs
+
+
+LOADERS = {"github": load_runs, "gitlab": load_gitlab_runs}

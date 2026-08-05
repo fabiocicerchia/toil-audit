@@ -278,3 +278,84 @@ class TestEndToEnd(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --- GitLab CI ingestion ----------------------------------------------------
+
+GITLAB_PIPELINES = json.dumps([
+    # two pipelines on the same commit = someone pressed retry -> attempt 2
+    {"id": 11, "project_id": 7, "sha": "abc", "ref": "main", "status": "failed",
+     "source": "push", "name": "build",
+     "web_url": "https://gitlab.com/acme/widgets/-/pipelines/11",
+     "created_at": "2026-06-01T10:00:00Z", "started_at": "2026-06-01T10:00:30Z",
+     "finished_at": "2026-06-01T10:05:00Z", "updated_at": "2026-06-01T10:05:00Z",
+     "user": {"username": "fabio"}},
+    {"id": 12, "project_id": 7, "sha": "abc", "ref": "main", "status": "success",
+     "source": "push", "name": "build",
+     "web_url": "https://gitlab.com/acme/widgets/-/pipelines/12",
+     "created_at": "2026-06-01T10:10:00Z", "started_at": "2026-06-01T10:10:10Z",
+     "finished_at": "2026-06-01T10:14:00Z", "updated_at": "2026-06-01T10:14:00Z",
+     "user": {"username": "fabio"}},
+    # started by hand from the UI -> the manual-trigger signal must see it
+    {"id": 13, "project_id": 7, "sha": "def", "ref": "main", "status": "manual",
+     "source": "web", "name": "deploy",
+     "web_url": "https://gitlab.com/acme/widgets/-/pipelines/13",
+     "created_at": "2026-06-02T09:00:00Z", "updated_at": "2026-06-02T09:03:00Z",
+     "user": {"username": "fabio"}},
+    # still running: no terminal status, must not be counted
+    {"id": 14, "project_id": 7, "sha": "ghi", "ref": "main", "status": "running",
+     "source": "push", "created_at": "2026-06-02T10:00:00Z",
+     "updated_at": "2026-06-02T10:01:00Z"},
+])
+
+
+def _gitlab_file(tmp_path, text=GITLAB_PIPELINES):
+    p = tmp_path / "pipelines.json"
+    p.write_text(text)
+    return p
+
+
+def test_gitlab_derives_run_attempts_from_repeated_commits(tmp_path):
+    from toilaudit.ingest import load_gitlab_runs
+    runs = load_gitlab_runs(_gitlab_file(tmp_path))
+    by_id = {r.run_id: r for r in runs}
+    assert by_id[11].run_attempt == 1
+    assert by_id[12].run_attempt == 2      # retry of the same commit
+    assert by_id[13].run_attempt == 1      # different commit, back to 1
+    assert 14 not in by_id                 # still running, not terminal
+
+
+def test_gitlab_vocabulary_maps_onto_the_detectors(tmp_path):
+    from toilaudit.ingest import load_gitlab_runs
+    by_id = {r.run_id: r for r in load_gitlab_runs(_gitlab_file(tmp_path))}
+    assert by_id[11].conclusion == "failure"          # GitLab says "failed"
+    assert by_id[13].conclusion == "action_required"  # parked on a manual job
+    assert by_id[13].event == "workflow_dispatch"     # source "web" = run by hand
+    assert by_id[11].repo == "acme/widgets"           # parsed out of web_url
+    assert by_id[11].is_human
+
+
+def test_gitlab_timings_and_missing_detail_fields(tmp_path):
+    from toilaudit.ingest import load_gitlab_runs
+    by_id = {r.run_id: r for r in load_gitlab_runs(_gitlab_file(tmp_path))}
+    assert by_id[11].queue_seconds == 30
+    assert by_id[11].duration_seconds == 270
+    # list-endpoint row with no started_at/finished_at: queue is 0, not invented
+    assert by_id[13].queue_seconds == 0
+    assert by_id[13].duration_seconds == 180
+
+
+def test_gitlab_accepts_concatenated_pages(tmp_path):
+    from toilaudit.ingest import load_gitlab_runs
+    page = json.loads(GITLAB_PIPELINES)
+    text = json.dumps(page[:2]) + "\n" + json.dumps(page[2:])
+    runs = load_gitlab_runs(_gitlab_file(tmp_path, text))
+    assert {r.run_id for r in runs} == {11, 12, 13}
+
+
+def test_gitlab_runs_flow_through_the_signal_detectors(tmp_path):
+    from toilaudit.ingest import load_gitlab_runs
+    from toilaudit.signals import detect_signals
+    signals = detect_signals(load_gitlab_runs(_gitlab_file(tmp_path)))
+    kinds = {s.kind for s in signals}
+    assert "RERUN" in kinds          # the derived attempt 2 was picked up

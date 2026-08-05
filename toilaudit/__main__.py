@@ -3,7 +3,7 @@
 import argparse
 
 from .costing import summarize_costs
-from .ingest import load_runs
+from .ingest import LOADERS
 from .report import build_report
 from .signals import detect_signals
 
@@ -13,7 +13,11 @@ def main(argv=None) -> int:
         prog="toil-audit",
         description="Quantify CI/CD babysitting cost in euros from a workflow-runs export.",
     )
-    parser.add_argument("runs_json", help="output of: gh api 'repos/O/R/actions/runs' --paginate")
+    parser.add_argument("runs_json",
+                        help="gh api 'repos/O/R/actions/runs' --paginate, "
+                             "or glab api 'projects/:id/pipelines' --paginate")
+    parser.add_argument("--provider", choices=sorted(LOADERS), default="github",
+                        help="CI system the export came from (default github)")
     parser.add_argument("--rate", type=float, default=75.0,
                         help="loaded engineer hourly rate in EUR (default 75)")
     parser.add_argument("--runner-rate", type=float, default=0.0074,
@@ -21,7 +25,7 @@ def main(argv=None) -> int:
     parser.add_argument("--out", help="write the Markdown report here instead of stdout")
     args = parser.parse_args(argv)
 
-    runs = load_runs(args.runs_json)
+    runs = LOADERS[args.provider](args.runs_json)
     signals = detect_signals(runs)
     summary = summarize_costs(signals, args.rate, args.runner_rate)
     report = build_report(runs, signals, summary, args.rate)
