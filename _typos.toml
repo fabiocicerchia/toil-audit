@@ -1,0 +1,5 @@
+# Domain vocabulary the typos dictionary mistakes for misspellings.
+
+[files]
+# Fixture commit SHAs: hex strings that happen to contain dbe, caf, ede, ba.
+extend-exclude = ["data/sample_runs.json"]
