@@ -5,14 +5,9 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fabiocicerchia/toil-audit/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fabiocicerchia/toil-audit)
 
-
 Analyzes CI/CD run history and **quantifies the cost of manual pipeline
 babysitting in euros** — the number that turns "our CI is flaky" into a
 budget conversation.
-
-> Positioning: consulting-tool-first. Run it against a prospect's repo and
-> open the engagement with "your pipelines cost you €X/month in engineer
-> time". The SaaS version is the same audit, continuously.
 
 ## Toil signals & assumptions
 
@@ -61,13 +56,23 @@ the costliest workflows, and sample incidents to point at in the meeting.
 python -m unittest discover -s tests -v
 ```
 
-## Roadmap to product
+## Install
 
-- [ ] GitLab CI and Jenkins ingestion.
-- [ ] Pull logs directly via the API instead of a JSON export.
-- [ ] Trend mode: monthly toil delta after fixes land (prove the ROI).
-- [ ] Flaky-test attribution: which test file causes the red→green loops.
-- [ ] Scheduled SaaS: weekly toil report per repo, Slack delivery.
+```sh
+git clone https://github.com/fabiocicerchia/toil-audit.git
+cd toil-audit
+pip install -e .
+```
+
+## Usage
+
+```sh
+python -m toilaudit --help
+```
+
+## Documentation
+
+Full docs live in [`docs/`](docs/). Runnable examples live in [`examples/`](examples/).
 
 ## Contributing
 
