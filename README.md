@@ -5,14 +5,9 @@
 [![License](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fabiocicerchia/toil-audit/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fabiocicerchia/toil-audit)
 
-
 Analyzes CI/CD run history and **quantifies the cost of manual pipeline
 babysitting in euros** — the number that turns "our CI is flaky" into a
 budget conversation.
-
-> Positioning: consulting-tool-first. Run it against a prospect's repo and
-> open the engagement with "your pipelines cost you €X/month in engineer
-> time". The SaaS version is the same audit, continuously.
 
 ## Toil signals & assumptions
 
@@ -47,7 +42,18 @@ python -m toilaudit org-runs.json --out org-toil-report.md
 
 # or try the bundled sample:
 python -m toilaudit data/sample_runs.json
+
+# GitLab CI:
+glab api 'projects/:id/pipelines?per_page=100' --paginate > pipelines.json
+python -m toilaudit pipelines.json --provider gitlab
 ```
+
+**GitLab note.** GitLab has no run-attempt counter — pressing "retry" creates a
+*new pipeline on the same commit* — so attempts are derived by grouping
+pipelines on (project, sha, ref) in creation order. The list endpoint also
+omits `started_at`/`finished_at`; without them queue time reads as zero rather
+than being invented. Export from `/pipelines/:id` if you want real queue
+figures.
 
 Org mode aggregates by workflow *name*, so identically named workflows
 (`CI`, `release`) merge across repos in the costliest-workflows table.
@@ -61,13 +67,23 @@ the costliest workflows, and sample incidents to point at in the meeting.
 python -m unittest discover -s tests -v
 ```
 
-## Roadmap to product
+## Install
 
-- [ ] GitLab CI and Jenkins ingestion.
-- [ ] Pull logs directly via the API instead of a JSON export.
-- [ ] Trend mode: monthly toil delta after fixes land (prove the ROI).
-- [ ] Flaky-test attribution: which test file causes the red→green loops.
-- [ ] Scheduled SaaS: weekly toil report per repo, Slack delivery.
+```sh
+git clone https://github.com/fabiocicerchia/toil-audit.git
+cd toil-audit
+pip install -e .
+```
+
+## Usage
+
+```sh
+python -m toilaudit --help
+```
+
+## Documentation
+
+Full docs live in [`docs/`](docs/). Runnable examples live in [`examples/`](examples/).
 
 ## Contributing
 
