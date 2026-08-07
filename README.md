@@ -4,6 +4,7 @@
 [![Security](https://github.com/fabiocicerchia/toil-audit/actions/workflows/security.yml/badge.svg)](https://github.com/fabiocicerchia/toil-audit/actions/workflows/security.yml)
 [![License](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fabiocicerchia/toil-audit/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fabiocicerchia/toil-audit)
+[![CI carbon](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/fabiocicerchia/toil-audit/gh-pages/badge.json)](.github/workflows/carbon-badge.yml)
 
 Analyzes CI/CD run history and **quantifies the cost of manual pipeline
 babysitting in euros** — the number that turns "our CI is flaky" into a
