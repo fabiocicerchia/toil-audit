@@ -5,6 +5,13 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1](https://github.com/fabiocicerchia/toil-audit/compare/v1.0.0...v1.0.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* security and code-quality findings ([#14](https://github.com/fabiocicerchia/toil-audit/issues/14)) ([ccbdade](https://github.com/fabiocicerchia/toil-audit/commit/ccbdade1d62e08bd427372a0a7b177f68713a623))
+
 ## 1.0.0 (2026-08-06)
 
 
