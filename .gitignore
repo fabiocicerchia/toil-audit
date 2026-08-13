@@ -2,7 +2,6 @@ __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
-# repo-skeleton
 .DS_Store
 reports/
 site/
