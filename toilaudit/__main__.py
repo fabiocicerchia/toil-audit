@@ -13,16 +13,32 @@ def main(argv=None) -> int:
         prog="toil-audit",
         description="Quantify CI/CD babysitting cost in euros from a workflow-runs export.",
     )
-    parser.add_argument("runs_json",
-                        help="gh api 'repos/O/R/actions/runs' --paginate, "
-                             "or glab api 'projects/:id/pipelines' --paginate")
-    parser.add_argument("--provider", choices=sorted(LOADERS), default="github",
-                        help="CI system the export came from (default github)")
-    parser.add_argument("--rate", type=float, default=75.0,
-                        help="loaded engineer hourly rate in EUR (default 75)")
-    parser.add_argument("--runner-rate", type=float, default=0.0074,
-                        help="runner cost in EUR per minute (default 0.0074)")
-    parser.add_argument("--out", help="write the Markdown report here instead of stdout")
+    parser.add_argument(
+        "runs_json",
+        help="gh api 'repos/O/R/actions/runs' --paginate, "
+        "or glab api 'projects/:id/pipelines' --paginate",
+    )
+    parser.add_argument(
+        "--provider",
+        choices=sorted(LOADERS),
+        default="github",
+        help="CI system the export came from (default github)",
+    )
+    parser.add_argument(
+        "--rate",
+        type=float,
+        default=75.0,
+        help="loaded engineer hourly rate in EUR (default 75)",
+    )
+    parser.add_argument(
+        "--runner-rate",
+        type=float,
+        default=0.0074,
+        help="runner cost in EUR per minute (default 0.0074)",
+    )
+    parser.add_argument(
+        "--out", help="write the Markdown report here instead of stdout"
+    )
     args = parser.parse_args(argv)
 
     runs = LOADERS[args.provider](args.runs_json)

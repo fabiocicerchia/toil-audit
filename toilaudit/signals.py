@@ -28,14 +28,14 @@ from dataclasses import dataclass
 from .ingest import Run
 
 DEFAULT_MINUTES = {
-    "RERUN": 10.0,            # notice, re-run, re-check
-    "FLAKY_RECOVERY": 15.0,   # diagnose "is it me or the tests?"
-    "MANUAL_DISPATCH": 5.0,   # remember + trigger + verify
-    "QUEUE_STALL": 6.0,       # ponytail: two context switches, flat estimate.
-                              # Give it the FAILED_RUN treatment if it ever
-                              # grows past a rounding error in the total.
-    "FAILED_RUN": 8.0,        # read logs, decide — now a *ceiling*, see below
-    "ACTION_REQUIRED": 5.0,   # notice it is parked, review, approve
+    "RERUN": 10.0,  # notice, re-run, re-check
+    "FLAKY_RECOVERY": 15.0,  # diagnose "is it me or the tests?"
+    "MANUAL_DISPATCH": 5.0,  # remember + trigger + verify
+    "QUEUE_STALL": 6.0,  # ponytail: two context switches, flat estimate.
+    # Give it the FAILED_RUN treatment if it ever
+    # grows past a rounding error in the total.
+    "FAILED_RUN": 8.0,  # read logs, decide — now a *ceiling*, see below
+    "ACTION_REQUIRED": 5.0,  # notice it is parked, review, approve
 }
 QUEUE_STALL_SECONDS = 900  # 15 min
 
@@ -53,8 +53,9 @@ FANOUT_WINDOW_MINUTES = 30.0
 APPLY_MINUTES = 1.0
 
 
-def _triage_minutes(next_push_minutes: float | None, fixed_by_human: bool,
-                    ceiling: float) -> float:
+def _triage_minutes(
+    next_push_minutes: float | None, fixed_by_human: bool, ceiling: float
+) -> float:
     """What the timeline says this failure cost, capped at the estimate.
 
     Past the ceiling the interval stops being attention — they went to bed. A
@@ -71,7 +72,8 @@ def _next_push_index(runs: list[Run]) -> dict[tuple[str, str], list[tuple]]:
     index: dict[tuple[str, str], list[tuple]] = {}
     for run in runs:
         index.setdefault((run.repo, run.branch), []).append(
-            (run.created_at.timestamp(), run.head_sha, run.is_human))
+            (run.created_at.timestamp(), run.head_sha, run.is_human)
+        )
     for pushes in index.values():
         pushes.sort()
     return index
@@ -128,7 +130,7 @@ def detect_signals(
     minutes = {**DEFAULT_MINUTES, **(minutes or {})}
     signals: list[Signal] = []
     seen_failures: dict[tuple[str, str], Run] = {}  # (workflow, sha) -> failed run
-    triaged: set[tuple[str, str]] = set()           # broken commits already read
+    triaged: set[tuple[str, str]] = set()  # broken commits already read
     pushes = _next_push_index(runs)
     followers = _fanout_followers(runs)
 
@@ -145,12 +147,15 @@ def detect_signals(
         key = (run.label, run.head_sha)
 
         if run.run_attempt > 1:
-            signals.append(Signal(
-                "RERUN", run,
-                f"attempt {run.run_attempt} of '{run.label}'",
-                minutes["RERUN"],
-                wasted_compute_seconds=run.duration_seconds * (run.run_attempt - 1),
-            ))
+            signals.append(
+                Signal(
+                    "RERUN",
+                    run,
+                    f"attempt {run.run_attempt} of '{run.label}'",
+                    minutes["RERUN"],
+                    wasted_compute_seconds=run.duration_seconds * (run.run_attempt - 1),
+                )
+            )
 
         if run.conclusion == "failure":
             seen_failures[key] = run
@@ -159,48 +164,74 @@ def detect_signals(
             if first_red:
                 gap, by_human = next_push(run)
                 cost = _triage_minutes(gap, by_human, minutes["FAILED_RUN"])
-                why = (" — never fixed, nobody looked" if gap is None
-                       else f" — not a human, {run.actor} pushed over it"
-                       if not by_human else f" — next push {gap:.0f} min later")
+                why = (
+                    " — never fixed, nobody looked"
+                    if gap is None
+                    else f" — not a human, {run.actor} pushed over it"
+                    if not by_human
+                    else f" — next push {gap:.0f} min later"
+                )
                 if run.commit in followers:
                     cost = min(cost, APPLY_MINUTES)
                     why = " — same fix pushed to several repos, diagnosed once"
                 detail = f"'{run.label}' failed on {run.head_sha[:7]}{why}"
             else:
-                cost, detail = 0.0, (f"'{run.label}' failed on {run.head_sha[:7]}"
-                                     " (same commit, already triaged)")
-            signals.append(Signal(
-                "FAILED_RUN", run, detail, cost,
-                wasted_compute_seconds=run.duration_seconds,
-            ))
+                cost, detail = (
+                    0.0,
+                    (
+                        f"'{run.label}' failed on {run.head_sha[:7]}"
+                        " (same commit, already triaged)"
+                    ),
+                )
+            signals.append(
+                Signal(
+                    "FAILED_RUN",
+                    run,
+                    detail,
+                    cost,
+                    wasted_compute_seconds=run.duration_seconds,
+                )
+            )
         elif run.conclusion == "success" and key in seen_failures:
             failed = seen_failures.pop(key)
             if run.run_id != failed.run_id:
-                signals.append(Signal(
-                    "FLAKY_RECOVERY", run,
-                    f"'{run.label}' red->green on same sha {run.head_sha[:7]}",
-                    minutes["FLAKY_RECOVERY"],
-                ))
+                signals.append(
+                    Signal(
+                        "FLAKY_RECOVERY",
+                        run,
+                        f"'{run.label}' red->green on same sha {run.head_sha[:7]}",
+                        minutes["FLAKY_RECOVERY"],
+                    )
+                )
 
         if run.conclusion == "action_required":
-            signals.append(Signal(
-                "ACTION_REQUIRED", run,
-                f"'{run.label}' parked waiting for approval",
-                minutes["ACTION_REQUIRED"],
-            ))
+            signals.append(
+                Signal(
+                    "ACTION_REQUIRED",
+                    run,
+                    f"'{run.label}' parked waiting for approval",
+                    minutes["ACTION_REQUIRED"],
+                )
+            )
 
         if run.event == "workflow_dispatch":
-            signals.append(Signal(
-                "MANUAL_DISPATCH", run,
-                f"'{run.label}' triggered by hand",
-                minutes["MANUAL_DISPATCH"],
-            ))
+            signals.append(
+                Signal(
+                    "MANUAL_DISPATCH",
+                    run,
+                    f"'{run.label}' triggered by hand",
+                    minutes["MANUAL_DISPATCH"],
+                )
+            )
 
         if run.queue_seconds > queue_stall_seconds:
-            signals.append(Signal(
-                "QUEUE_STALL", run,
-                f"'{run.label}' queued {run.queue_seconds / 60:.0f} min",
-                minutes["QUEUE_STALL"],
-            ))
+            signals.append(
+                Signal(
+                    "QUEUE_STALL",
+                    run,
+                    f"'{run.label}' queued {run.queue_seconds / 60:.0f} min",
+                    minutes["QUEUE_STALL"],
+                )
+            )
 
     return signals
