@@ -41,6 +41,10 @@ gh repo list OWNER --limit 200 --json nameWithOwner -q '.[].nameWithOwner' \
 
 python -m toilaudit org-runs.json --out org-toil-report.md
 
+# attribute flaky recoveries to the test that caused them (logs on disk):
+gh run download <run-id> --dir logs/   # or: gh api .../logs > logs/<run-id>.zip
+python -m toilaudit runs.json --attribute-logs logs/
+
 # or try the bundled sample:
 python -m toilaudit data/sample_runs.json
 
