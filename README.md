@@ -29,6 +29,17 @@ is only as credible as its assumptions are defensible.
 ## Run it
 
 ```bash
+# straight from the API — no export step, so this can run on a schedule:
+export GITHUB_TOKEN=...            # environment only, never a flag
+python -m toilaudit --repo OWNER/REPO --since 2026-07-01 --out toil-report.md
+
+# pages are cached under .toilaudit-cache, so re-analysing costs nothing
+python -m toilaudit --repo OWNER/REPO --since 2026-07-01 --rate 85
+```
+
+Or from an export, which is still the right thing for a one-off audit:
+
+```bash
 # export the run history (any repo you can read):
 gh api 'repos/OWNER/REPO/actions/runs?per_page=100' --paginate > runs.json
 
