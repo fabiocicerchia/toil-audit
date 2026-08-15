@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-
 # ponytail: GitHub's per-job wall-clock ceiling. `updated_at` is bumped whenever
 # the run *record* changes (log-retention cleanup, annotations), sometimes months
 # after the run ended — uncapped, a single stale record reads as 400 days of
@@ -27,20 +26,20 @@ MAX_RUN_SECONDS = 6 * 3600
 class Run:
     run_id: int
     workflow: str
-    event: str            # push | pull_request | workflow_dispatch | schedule...
-    conclusion: str       # success | failure | cancelled | ...
-    run_attempt: int      # >1 means someone pressed re-run
+    event: str  # push | pull_request | workflow_dispatch | schedule...
+    conclusion: str  # success | failure | cancelled | ...
+    run_attempt: int  # >1 means someone pressed re-run
     head_sha: str
     created_at: datetime  # queued
     started_at: datetime  # picked up by a runner
     updated_at: datetime  # finished
-    repo: str = ""        # owner/name — empty for single-repo exports
-    path: str = ""        # .github/workflows/x.yml — the same file gets copied
-                          # into every repo, so it's the unit you actually fix
-    branch: str = ""      # head_branch — the next push here is the fix
-    actor: str = ""       # who triggered it; "...[bot]" is not a human
-    title: str = ""       # commit/PR subject — identical across repos means
-                          # one fix was pushed everywhere, not N diagnoses
+    repo: str = ""  # owner/name — empty for single-repo exports
+    path: str = ""  # .github/workflows/x.yml — the same file gets copied
+    # into every repo, so it's the unit you actually fix
+    branch: str = ""  # head_branch — the next push here is the fix
+    actor: str = ""  # who triggered it; "...[bot]" is not a human
+    title: str = ""  # commit/PR subject — identical across repos means
+    # one fix was pushed everywhere, not N diagnoses
 
     @property
     def is_human(self) -> bool:
@@ -90,8 +89,10 @@ def _to_run(obj: dict) -> Run:
         path=obj.get("path", ""),
         branch=obj.get("head_branch") or "",
         actor=(obj.get("triggering_actor") or {}).get("login", ""),
-        title=(obj.get("display_title")
-               or (obj.get("head_commit") or {}).get("message", "")).split("\n")[0],
+        title=(
+            obj.get("display_title")
+            or (obj.get("head_commit") or {}).get("message", "")
+        ).split("\n")[0],
     )
 
 
@@ -136,20 +137,24 @@ def _gitlab_repo(obj: dict) -> str:
 def _to_gitlab_run(obj: dict, attempt: int) -> Run:
     created = _ts(obj["created_at"])
     started = _ts(obj["started_at"]) if obj.get("started_at") else created
-    finished = _ts(obj["finished_at"]) if obj.get("finished_at") else _ts(obj["updated_at"])
+    finished = (
+        _ts(obj["finished_at"]) if obj.get("finished_at") else _ts(obj["updated_at"])
+    )
     user = obj.get("user") or {}
     return Run(
         run_id=obj["id"],
         workflow=obj.get("name") or ".gitlab-ci.yml",
         event=_GITLAB_SOURCE.get(obj.get("source", ""), obj.get("source", "unknown")),
-        conclusion=_GITLAB_STATUS.get(obj.get("status", ""), obj.get("status", "unknown")),
+        conclusion=_GITLAB_STATUS.get(
+            obj.get("status", ""), obj.get("status", "unknown")
+        ),
         run_attempt=attempt,
         head_sha=obj.get("sha", ""),
         created_at=created,
         started_at=started,
         updated_at=finished,
         repo=_gitlab_repo(obj),
-        path=".gitlab-ci.yml",   # one pipeline definition per project, by design
+        path=".gitlab-ci.yml",  # one pipeline definition per project, by design
         branch=obj.get("ref") or "",
         actor=user.get("username", ""),
         title=(obj.get("name") or "").split("\n")[0],
@@ -175,8 +180,10 @@ def load_gitlab_runs(path: str | Path) -> list[Run]:
     on a commit is attempt 2 — which is what the re-run signal is counting.
     """
     raw = _load_json_pages(path, "pipelines")
-    ordered = sorted((o for o in raw if o.get("status") in _GITLAB_STATUS),
-                     key=lambda o: o["created_at"])
+    ordered = sorted(
+        (o for o in raw if o.get("status") in _GITLAB_STATUS),
+        key=lambda o: o["created_at"],
+    )
     attempts: dict[tuple, int] = {}
     runs = []
     for obj in ordered:

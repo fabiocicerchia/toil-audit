@@ -1,7 +1,8 @@
 """Render the audit as a Markdown report."""
 
 from calendar import monthrange
-from datetime import datetime
+from datetime import datetime, timezone
+from itertools import pairwise
 
 from .costing import CostSummary
 from .ingest import Run
@@ -47,12 +48,17 @@ def keyboard_hours(runs: list[Run]) -> float:
             start = t
         prev = t
     total += (prev - start).total_seconds() / 3600
-    sittings = 1 + sum(1 for a, b in zip(stamps, stamps[1:])
-                       if (b - a).total_seconds() > SESSION_GAP_MINUTES * 60)
+    sittings = 1 + sum(
+        1
+        for a, b in pairwise(stamps)
+        if (b - a).total_seconds() > SESSION_GAP_MINUTES * 60
+    )
     return total + sittings * SESSION_LEAD_IN_MINUTES / 60
 
 
-def _complete_months(by_month: dict[str, float], runs: list[Run]) -> list[tuple[str, float]]:
+def _complete_months(
+    by_month: dict[str, float], runs: list[Run]
+) -> list[tuple[str, float]]:
     """Months the export covers end to end — the partial edges aren't rates."""
     keys = list(by_month)
     if not runs or not keys:
@@ -60,14 +66,18 @@ def _complete_months(by_month: dict[str, float], runs: list[Run]) -> list[tuple[
     first, last = runs[0].created_at, runs[-1].created_at
     if first.day > 1 and keys[0] == f"{first:%Y-%m}":
         keys = keys[1:]
-    if keys and last.day < monthrange(last.year, last.month)[1] \
-            and keys[-1] == f"{last:%Y-%m}":
+    if (
+        keys
+        and last.day < monthrange(last.year, last.month)[1]
+        and keys[-1] == f"{last:%Y-%m}"
+    ):
         keys = keys[:-1]
     return [(k, by_month[k]) for k in keys]
 
 
-def build_report(runs: list[Run], signals: list[Signal], summary: CostSummary,
-                 hourly_rate_eur: float) -> str:
+def build_report(
+    runs: list[Run], signals: list[Signal], summary: CostSummary, hourly_rate_eur: float
+) -> str:
     if runs:
         period = f"{runs[0].created_at.date()} → {runs[-1].created_at.date()}"
         days = max(1.0, (runs[-1].created_at - runs[0].created_at).days)
@@ -86,17 +96,21 @@ def build_report(runs: list[Run], signals: list[Signal], summary: CostSummary,
     sanity: list[str] = []
     if complete:
         recent_month, recent_eur = complete[-1]
-        in_month = [s for s in signals
-                    if f"{s.run.created_at:%Y-%m}" == recent_month]
+        in_month = [s for s in signals if f"{s.run.created_at:%Y-%m}" == recent_month]
         billed_h = sum(s.engineer_minutes for s in in_month) / 60
-        ceiling_h = keyboard_hours([r for r in runs
-                                    if f"{r.created_at:%Y-%m}" == recent_month])
-        headline = (f"## Bottom line: **{_eur(recent_eur)} in {recent_month}** "
-                    f"(last full month)")
-        context = (f"{_eur(summary.total_eur)} total across {months:.1f} months, "
-                   f"but the load is not flat — see the trend. At {recent_month}'s "
-                   f"rate that is {billed_h:.0f} engineer-hours a month, "
-                   f"{billed_h / HOURS_PER_ENGINEER_MONTH:.0%} of one engineer.")
+        ceiling_h = keyboard_hours(
+            [r for r in runs if f"{r.created_at:%Y-%m}" == recent_month]
+        )
+        headline = (
+            f"## Bottom line: **{_eur(recent_eur)} in {recent_month}** "
+            f"(last full month)"
+        )
+        context = (
+            f"{_eur(summary.total_eur)} total across {months:.1f} months, "
+            f"but the load is not flat — see the trend. At {recent_month}'s "
+            f"rate that is {billed_h:.0f} engineer-hours a month, "
+            f"{billed_h / HOURS_PER_ENGINEER_MONTH:.0%} of one engineer."
+        )
         if ceiling_h:
             share = billed_h / ceiling_h
             sanity = [
@@ -105,21 +119,26 @@ def build_report(runs: list[Run], signals: list[Signal], summary: CostSummary,
                 f"of human keyboard time in {recent_month} (all work, not just CI). "
                 f"This report bills {billed_h:.0f} h of toil against it: "
                 f"**{share:.0%}** of everything done that month."
-                + ("" if share <= 0.5 else
-                   " That is too high to defend in a room — lower the per-signal"
-                   " minutes before you present it."),
+                + (
+                    ""
+                    if share <= 0.5
+                    else " That is too high to defend in a room — lower the per-signal"
+                    " minutes before you present it."
+                ),
             ]
     else:
-        headline = (f"## Bottom line: **{_eur(summary.total_eur / months)} per month**"
-                    " of toil")
-        context = (f"{_eur(summary.total_eur)} total over {months:.1f} months "
-                   f"({summary.total_engineer_minutes / 60:.1f} engineer-hours).")
+        headline = (
+            f"## Bottom line: **{_eur(summary.total_eur / months)} per month** of toil"
+        )
+        context = (
+            f"{_eur(summary.total_eur)} total over {months:.1f} months "
+            f"({summary.total_engineer_minutes / 60:.1f} engineer-hours)."
+        )
 
     lines = [
         "# Toil audit",
         "",
-        f"_{scope}, {period}. "
-        f"Engineer rate {_eur(hourly_rate_eur)}/h (loaded)._",
+        f"_{scope}, {period}. Engineer rate {_eur(hourly_rate_eur)}/h (loaded)._",
         "",
         headline,
         "",
@@ -138,9 +157,11 @@ def build_report(runs: list[Run], signals: list[Signal], summary: CostSummary,
         )
     lines += [
         "",
-        "_Charged: failure triage is billed once per broken commit, not once per"
-        " red workflow — one bad push turns several workflows red and a human"
-        " reads the logs once._",
+        (
+            "_Charged: failure triage is billed once per broken commit, not once per"
+            " red workflow — one bad push turns several workflows red and a human"
+            " reads the logs once._"
+        ),
     ]
 
     if summary.by_month:
@@ -155,7 +176,9 @@ def build_report(runs: list[Run], signals: list[Signal], summary: CostSummary,
     shared = [t for t in summary.by_template if t.repos > 1][:8]
     if shared:
         lines += [
-            "", "## Costliest workflow files", "",
+            "",
+            "## Costliest workflow files",
+            "",
             "_The same file copied into every repo: fix it once, fix it everywhere._",
             "",
             "| Workflow file | Repos | Total € |",
@@ -178,7 +201,9 @@ def build_report(runs: list[Run], signals: list[Signal], summary: CostSummary,
     lines += [
         "",
         "---",
-        f"_Generated {datetime.now():%Y-%m-%d %H:%M}. Assumptions are configurable;"
-        " see README for the methodology._",
+        (
+            f"_Generated {datetime.now(tz=timezone.utc):%Y-%m-%d %H:%M} UTC."
+            " Assumptions are configurable; see README for the methodology._"
+        ),
     ]
     return "\n".join(lines)

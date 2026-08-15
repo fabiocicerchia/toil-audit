@@ -20,8 +20,8 @@ DEFAULT_RUNNER_EUR_PER_MINUTE = 0.0074  # $0.008 converted, rounded
 @dataclass(frozen=True)
 class CostLine:
     kind: str
-    count: int            # events detected
-    charged_count: int    # events that cost a human — see FAILED_RUN dedup
+    count: int  # events detected
+    charged_count: int  # events that cost a human — see FAILED_RUN dedup
     engineer_minutes: float
     engineer_cost_eur: float
     compute_minutes: float
@@ -35,6 +35,7 @@ class CostLine:
 @dataclass(frozen=True)
 class TemplateLine:
     """One workflow file, summed over every repo that copied it."""
+
     path: str
     repos: int
     total_eur: float
@@ -42,10 +43,10 @@ class TemplateLine:
 
 @dataclass(frozen=True)
 class CostSummary:
-    lines: list[CostLine]              # per signal kind, largest first
-    by_workflow: dict[str, float]      # repo/workflow -> total EUR
-    by_template: list[TemplateLine]    # workflow file -> total EUR, largest first
-    by_month: dict[str, float]         # YYYY-MM -> total EUR, chronological
+    lines: list[CostLine]  # per signal kind, largest first
+    by_workflow: dict[str, float]  # repo/workflow -> total EUR
+    by_template: list[TemplateLine]  # workflow file -> total EUR, largest first
+    by_month: dict[str, float]  # YYYY-MM -> total EUR, chronological
     total_engineer_minutes: float
     total_eur: float
 
@@ -62,8 +63,10 @@ def summarize_costs(
     by_month: dict[str, float] = defaultdict(float)
 
     def cost_of(s: Signal) -> float:
-        return (s.engineer_minutes / 60 * hourly_rate_eur
-                + s.wasted_compute_seconds / 60 * runner_eur_per_minute)
+        return (
+            s.engineer_minutes / 60 * hourly_rate_eur
+            + s.wasted_compute_seconds / 60 * runner_eur_per_minute
+        )
 
     for s in signals:
         per_kind[s.kind].append(s)
@@ -90,15 +93,19 @@ def summarize_costs(
         template_repos[s.run.template].add(s.run.repo)
         by_month[f"{s.run.created_at:%Y-%m}"] += eur
 
-    templates = [TemplateLine(p, len(template_repos[p]), round(v, 2))
-                 for p, v in by_template.items()]
+    templates = [
+        TemplateLine(p, len(template_repos[p]), round(v, 2))
+        for p, v in by_template.items()
+    ]
     templates.sort(key=lambda t: t.total_eur, reverse=True)
 
     lines.sort(key=lambda l: l.total_eur, reverse=True)
     return CostSummary(
         lines=lines,
-        by_workflow={k: round(v, 2) for k, v in
-                     sorted(by_workflow.items(), key=lambda kv: kv[1], reverse=True)},
+        by_workflow={
+            k: round(v, 2)
+            for k, v in sorted(by_workflow.items(), key=lambda kv: kv[1], reverse=True)
+        },
         by_template=templates,
         by_month={k: round(by_month[k], 2) for k in sorted(by_month)},
         total_engineer_minutes=round(sum(l.engineer_minutes for l in lines), 1),
