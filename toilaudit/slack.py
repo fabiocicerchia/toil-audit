@@ -155,7 +155,7 @@ def post(
                 raise DeliveryError(
                     f"{_host_of(webhook)} rejected the report: {last}"
                 ) from None
-        except Exception as err:  # transport: DNS, TLS, timeout
+        except Exception as err:  # noqa: BLE001 - transport: DNS, TLS, timeout
             last = type(err).__name__
         if attempt < attempts:
             sleep(backoff * attempt)
