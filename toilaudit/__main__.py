@@ -1,11 +1,20 @@
 """CLI: python -m toilaudit runs.json [--rate 75] [--out report.md]"""
 
 import argparse
+import sys
 
 from .costing import summarize_costs
 from .ingest import LOADERS
 from .report import build_report
 from .signals import detect_signals
+from .slack import (
+    DeliveryError,
+    build_message,
+    load_state,
+    post,
+    save_state,
+    webhook_from_env,
+)
 
 
 def main(argv=None) -> int:
@@ -39,6 +48,20 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--out", help="write the Markdown report here instead of stdout"
     )
+    parser.add_argument(
+        "--slack",
+        metavar="REPO",
+        help="post the figure, its week-over-week delta and the top signals to "
+        "Slack, labelled with REPO. The webhook comes from "
+        "TOIL_AUDIT_SLACK_WEBHOOK (or SLACK_WEBHOOK_URL) in the environment — "
+        "never a flag, because the URL is the credential",
+    )
+    parser.add_argument(
+        "--state",
+        default=".toilaudit-weekly.json",
+        help="where last week's figure is kept, for the delta (default "
+        ".toilaudit-weekly.json)",
+    )
     args = parser.parse_args(argv)
 
     runs = LOADERS[args.provider](args.runs_json)
@@ -52,6 +75,31 @@ def main(argv=None) -> int:
         print(f"Wrote {args.out} — total toil {summary.total_eur:,.2f} EUR")
     else:
         print(report)
+
+    if args.slack:
+        # After the report is on disk: a delivery failure must never be the
+        # reason the week's audit is lost.
+        webhook = webhook_from_env()
+        if not webhook:
+            print(
+                "toil-audit: --slack given but TOIL_AUDIT_SLACK_WEBHOOK is not set",
+                file=sys.stderr,
+            )
+            return 2
+        state = load_state(args.state)
+        try:
+            post(webhook, build_message(args.slack, summary, state))
+        except DeliveryError as err:
+            print(f"toil-audit: {err}", file=sys.stderr)
+            print("toil-audit: the report is unaffected", file=sys.stderr)
+            return 3
+        # Only after a successful post: a failed delivery must not move the
+        # baseline, or next week's delta would compare against a figure nobody
+        # ever saw.
+        state[args.slack] = {"total_eur": summary.total_eur}
+        save_state(state, args.state)
+        print(f"toil-audit: posted {args.slack} to Slack")
+
     return 0
 
 
