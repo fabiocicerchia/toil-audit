@@ -44,20 +44,24 @@ from dataclasses import dataclass, field
 # kind of pattern that passes its tests and finds zero failures in production.
 PATTERNS = (
     re.compile(
-        r"(?:^|\s)FAILED\s+(?P<path>[\w./\\-]+\.py)::(?P<name>[\w:.\[\]-]+)", re.M
+        r"(?:^|\s)FAILED\s+(?P<path>[\w./\\-]+\.py)::(?P<name>[\w:.\[\]-]+)",
+        re.MULTILINE,
     ),
     re.compile(
-        r"(?:^|\s)ERROR\s+(?P<path>[\w./\\-]+\.py)::(?P<name>[\w:.\[\]-]+)", re.M
+        r"(?:^|\s)ERROR\s+(?P<path>[\w./\\-]+\.py)::(?P<name>[\w:.\[\]-]+)",
+        re.MULTILINE,
     ),
     re.compile(
         r"(?:^|\s)(?:●|✕|✗)\s+(?P<path>[\w./\\-]+\.(?:test|spec)\.[jt]sx?)\s*[›>]\s*(?P<name>[^\n]+)",
-        re.M,
+        re.MULTILINE,
     ),
-    re.compile(r"(?:^|\s)at\s+(?P<path>[\w./\\-]+\.(?:test|spec)\.[jt]sx?):\d+", re.M),
-    re.compile(r"rspec\s+\./(?P<path>[\w./\\-]+_spec\.rb):\d+", re.M),
+    re.compile(
+        r"(?:^|\s)at\s+(?P<path>[\w./\\-]+\.(?:test|spec)\.[jt]sx?):\d+", re.MULTILINE
+    ),
+    re.compile(r"rspec\s+\./(?P<path>[\w./\\-]+_spec\.rb):\d+", re.MULTILINE),
     re.compile(
         r'<testcase[^>]*classname="(?P<path>[\w.]+)"[^>]*name="(?P<name>[^"]+)"[^>]*>\s*<failure',
-        re.M,
+        re.MULTILINE,
     ),
 )
 
@@ -66,7 +70,7 @@ PATTERNS = (
 # the presence of a FAIL gates it, and the _test.go paths in the same log are
 # taken as the failing files — cruder, but it does not invent an association
 # the log does not actually make.
-_GO_FAIL = re.compile(r"^\s*---\s+FAIL:\s+\w+", re.M)
+_GO_FAIL = re.compile(r"^\s*---\s+FAIL:\s+\w+", re.MULTILINE)
 _GO_FILE = re.compile(r"(?P<path>[\w./\\-]+_test\.go):\d+")
 
 # A path that escapes the repo, or is absolute, is not a test file in this
@@ -148,9 +152,11 @@ def attribute(recoveries, logs_for, cost_of) -> Attribution:
         eur = float(cost_of(signal))
         try:
             text = logs_for(signal) or ""
-        except Exception:
-            # A log that cannot be fetched is an unattributed recovery, not a
-            # failed audit — the euro figure is still correct either way.
+        except Exception:  # noqa: BLE001 - see below
+            # Deliberately blind. The fetcher is supplied by the caller and can
+            # fail in any way a filesystem or an HTTP client can: a log that
+            # cannot be read is an unattributed recovery, not a failed audit,
+            # and the euro figure is correct either way.
             text = ""
         identities = failing_tests(text)
         if not identities:

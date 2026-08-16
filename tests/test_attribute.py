@@ -7,9 +7,9 @@ from toilaudit.attribute import (
     Attribution,
     attribute,
     failing_tests,
+    file_of,
     logs_from_zip,
     summarise,
-    file_of,
 )
 
 PYTEST_LOG = """
