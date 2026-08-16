@@ -4,6 +4,7 @@ from calendar import monthrange
 from datetime import datetime, timezone
 from itertools import pairwise
 
+from .attribute import summarise
 from .costing import CostSummary
 from .ingest import Run
 from .signals import Signal
@@ -76,7 +77,11 @@ def _complete_months(
 
 
 def build_report(
-    runs: list[Run], signals: list[Signal], summary: CostSummary, hourly_rate_eur: float
+    runs: list[Run],
+    signals: list[Signal],
+    summary: CostSummary,
+    hourly_rate_eur: float,
+    attribution=None,
 ) -> str:
     if runs:
         period = f"{runs[0].created_at.date()} → {runs[-1].created_at.date()}"
@@ -186,6 +191,12 @@ def build_report(
         ]
         for t in shared:
             lines.append(f"| `{t.path}` | {t.repos} | {_eur(t.total_eur)} |")
+
+    if attribution is not None:
+        # Placed before the workflow rankings: a named test file is the most
+        # actionable line in the report, and it partitions a cost already
+        # counted above rather than adding to it.
+        lines += [""] + summarise(attribution)
 
     lines += ["", "## Costliest workflows", ""]
     for wf, eur in list(summary.by_workflow.items())[:8]:
