@@ -4,6 +4,9 @@ import argparse
 import sys
 
 from .costing import summarize_costs
+from .ingest import LOADERS
+from .report import build_report
+from .signals import detect_signals
 from .slack import (
     DeliveryError,
     build_message,
@@ -12,9 +15,6 @@ from .slack import (
     save_state,
     webhook_from_env,
 )
-from .ingest import LOADERS
-from .report import build_report
-from .signals import detect_signals
 
 
 def main(argv=None) -> int:
