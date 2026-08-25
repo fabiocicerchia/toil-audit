@@ -14,7 +14,7 @@ pip install -e .
 python -m toilaudit --help
 ```
 
-The [README](../README.md) covers what toil-audit does and why.
+The [README](README.md) covers what toil-audit does and why.
 
 ## Naming the flaky test
 
