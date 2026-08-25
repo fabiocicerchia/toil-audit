@@ -5,6 +5,15 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0](https://github.com/fabiocicerchia/toil-audit/compare/v1.0.1...v1.1.0) (2026-08-25)
+
+
+### Features
+
+* **docs:** build the docs site in Actions and drop Read the Docs ([#29](https://github.com/fabiocicerchia/toil-audit/issues/29)) ([d367caa](https://github.com/fabiocicerchia/toil-audit/commit/d367caaff67098b9c218c5d68f9f626781b506ea))
+* **ingest:** fetch run history from the GitHub API ([#18](https://github.com/fabiocicerchia/toil-audit/issues/18)) ([36a2baa](https://github.com/fabiocicerchia/toil-audit/commit/36a2baae48bd4a344354a437cf191ff206810949))
+* **signals:** attribute flaky recoveries to the test that caused them ([#19](https://github.com/fabiocicerchia/toil-audit/issues/19)) ([ca08fc4](https://github.com/fabiocicerchia/toil-audit/commit/ca08fc4325b838d866fe64d00f5de1d782a92e8b))
+
 ## [1.0.1](https://github.com/fabiocicerchia/toil-audit/compare/v1.0.0...v1.0.1) (2026-08-13)
 
 
