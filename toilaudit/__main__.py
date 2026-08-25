@@ -1,9 +1,12 @@
-"""CLI: python -m toilaudit runs.json [--rate 75] [--out report.md]"""
+"""CLI: python -m toilaudit runs.json [--rate 75] [--out report.md]
+python -m toilaudit --repo owner/name [--since 2026-07-01]
+"""
 
 import argparse
 
 from .costing import summarize_costs
-from .ingest import LOADERS
+from .fetch import fetch_github_runs
+from .ingest import LOADERS, runs_from_objects
 from .report import build_report
 from .signals import detect_signals
 
@@ -15,8 +18,32 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "runs_json",
+        nargs="?",
         help="gh api 'repos/O/R/actions/runs' --paginate, "
         "or glab api 'projects/:id/pipelines' --paginate",
+    )
+    parser.add_argument(
+        "--repo",
+        metavar="OWNER/NAME",
+        help="fetch the history from the GitHub API instead of an export. The "
+        "token comes from GITHUB_TOKEN or GH_TOKEN in the environment — "
+        "never a flag",
+    )
+    parser.add_argument(
+        "--since",
+        metavar="YYYY-MM-DD",
+        help="with --repo: only runs created on or after this date",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        default=".toilaudit-cache",
+        help="where fetched pages are cached so re-analysis does not re-fetch "
+        "(default .toilaudit-cache)",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="with --repo: always fetch, do not read or write the cache",
     )
     parser.add_argument(
         "--provider",
@@ -41,7 +68,18 @@ def main(argv=None) -> int:
     )
     args = parser.parse_args(argv)
 
-    runs = LOADERS[args.provider](args.runs_json)
+    if bool(args.repo) == bool(args.runs_json):
+        parser.error("give either an export file or --repo, not both")
+
+    if args.repo:
+        raw = fetch_github_runs(
+            args.repo,
+            created=f">={args.since}" if args.since else "",
+            cache_dir=None if args.no_cache else args.cache_dir,
+        )
+        runs = runs_from_objects(raw)
+    else:
+        runs = LOADERS[args.provider](args.runs_json)
     signals = detect_signals(runs)
     summary = summarize_costs(signals, args.rate, args.runner_rate)
     report = build_report(runs, signals, summary, args.rate)

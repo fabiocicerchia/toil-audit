@@ -217,6 +217,17 @@ def _load_json_pages(path: str | Path, key: str) -> list[dict]:
     return out
 
 
+def runs_from_objects(raw: list[dict]) -> list[Run]:
+    """Normalise raw API objects into `Run`s.
+
+    The API path and the export path both end here, so a run fetched over HTTP
+    and the same run read from a file cannot be interpreted differently.
+    """
+    runs = [_to_run(o) for o in raw if o.get("status") == "completed"]
+    runs.sort(key=lambda r: r.created_at)
+    return runs
+
+
 def load_runs(path: str | Path) -> list[Run]:
     text = Path(path).read_text().strip()
     if text.startswith("["):
@@ -232,9 +243,7 @@ def load_runs(path: str | Path) -> list[Run]:
             pos = offset
             while pos < len(text) and text[pos] in " \r\n\t":
                 pos += 1
-    runs = [_to_run(o) for o in raw if o.get("status") == "completed"]
-    runs.sort(key=lambda r: r.created_at)
-    return runs
+    return runs_from_objects(raw)
 
 
 LOADERS = {"github": load_runs, "gitlab": load_gitlab_runs}
