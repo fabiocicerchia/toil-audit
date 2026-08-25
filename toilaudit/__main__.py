@@ -3,7 +3,9 @@ python -m toilaudit --repo owner/name [--since 2026-07-01]
 """
 
 import argparse
+from pathlib import Path
 
+from .attribute import attribute, logs_from_zip
 from .costing import summarize_costs
 from .fetch import fetch_github_runs
 from .ingest import LOADERS, runs_from_objects
@@ -66,6 +68,14 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--out", help="write the Markdown report here instead of stdout"
     )
+    parser.add_argument(
+        "--attribute-logs",
+        metavar="DIR",
+        help="attribute flaky recoveries to the test that caused them, reading "
+        "each failed run's log from DIR/<run_id>.txt (or .zip, as the API "
+        "serves them). Log content is used for matching only — no excerpt "
+        "reaches the report",
+    )
     args = parser.parse_args(argv)
 
     if bool(args.repo) == bool(args.runs_json):
@@ -82,7 +92,15 @@ def main(argv=None) -> int:
         runs = LOADERS[args.provider](args.runs_json)
     signals = detect_signals(runs)
     summary = summarize_costs(signals, args.rate, args.runner_rate)
-    report = build_report(runs, signals, summary, args.rate)
+    attribution = None
+    if args.attribute_logs:
+        attribution = attribute(
+            [s for s in signals if s.kind == "FLAKY_RECOVERY"],
+            lambda sig: _read_log(args.attribute_logs, sig.run.run_id),
+            lambda sig: sig.engineer_minutes / 60.0 * args.rate,
+        )
+
+    report = build_report(runs, signals, summary, args.rate, attribution)
 
     if args.out:
         with open(args.out, "w") as fh:
@@ -95,3 +113,22 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def _read_log(directory, run_id):
+    """One run's log from a directory, as text.
+
+    Files rather than a live download: the logs endpoint is a separate scope
+    and a large transfer, and an audit that already has the logs on disk (gh
+    run download, or a CI artifact) should not need either. Accepts the zip
+    the API serves and a plain .txt, so both work without unpacking anything.
+    """
+    base = Path(directory) / str(run_id)
+    for suffix in (".txt", ".log"):
+        path = base.with_suffix(suffix)
+        if path.exists():
+            return path.read_text(errors="replace")
+    zipped = base.with_suffix(".zip")
+    if zipped.exists():
+        return logs_from_zip(zipped.read_bytes())
+    return ""
