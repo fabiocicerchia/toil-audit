@@ -80,18 +80,24 @@ _SUSPICIOUS = re.compile(
 )
 
 
+def _go_failures(log_text: str) -> set[str]:
+    """Test files from a `go test` log, but only if it reported a failure."""
+    if not _GO_FAIL.search(log_text):
+        return set()
+    return {
+        match.group("path")
+        for match in _GO_FILE.finditer(log_text)
+        if not _SUSPICIOUS.search(match.group("path"))
+    }
+
+
 def failing_tests(log_text: str) -> list[str]:
     """Test identities named as failing in one job's log.
 
     Returns paths (or `path::name` where the framework gives one), de-duplicated
     and sorted so a report is stable across runs. Never returns a log line.
     """
-    found: set[str] = set()
-    if _GO_FAIL.search(log_text):
-        for match in _GO_FILE.finditer(log_text):
-            path = match.group("path")
-            if not _SUSPICIOUS.search(path):
-                found.add(path)
+    found: set[str] = _go_failures(log_text)
     for pattern in PATTERNS:
         for match in pattern.finditer(log_text):
             groups = match.groupdict()

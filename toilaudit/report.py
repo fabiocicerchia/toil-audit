@@ -76,6 +76,101 @@ def _complete_months(
     return [(k, by_month[k]) for k in keys]
 
 
+def _bottom_line(
+    runs: list[Run],
+    signals: list[Signal],
+    summary: CostSummary,
+    complete: list[tuple[str, float]],
+    months: float,
+) -> list[str]:
+    """The headline euro figure, its context, and the keyboard-time sanity check.
+
+    A 14-month average hides a burst, so the headline is the last *complete*
+    calendar month — the partial current month would read as a collapse in toil.
+    """
+    if not complete:
+        return [
+            f"## Bottom line: **{_eur(summary.total_eur / months)} per month** of toil",
+            "",
+            (
+                f"{_eur(summary.total_eur)} total over {months:.1f} months "
+                f"({summary.total_engineer_minutes / 60:.1f} engineer-hours)."
+            ),
+        ]
+
+    recent_month, recent_eur = complete[-1]
+    in_month = [s for s in signals if f"{s.run.created_at:%Y-%m}" == recent_month]
+    billed_h = sum(s.engineer_minutes for s in in_month) / 60
+    ceiling_h = keyboard_hours(
+        [r for r in runs if f"{r.created_at:%Y-%m}" == recent_month]
+    )
+    lines = [
+        f"## Bottom line: **{_eur(recent_eur)} in {recent_month}** (last full month)",
+        "",
+        (
+            f"{_eur(summary.total_eur)} total across {months:.1f} months, "
+            f"but the load is not flat — see the trend. At {recent_month}'s "
+            f"rate that is {billed_h:.0f} engineer-hours a month, "
+            f"{billed_h / HOURS_PER_ENGINEER_MONTH:.0%} of one engineer."
+        ),
+    ]
+    if not ceiling_h:
+        return lines
+    share = billed_h / ceiling_h
+    return lines + [
+        "",
+        f"> **Sanity check** — push timing puts at most **{ceiling_h:.0f} h** "
+        f"of human keyboard time in {recent_month} (all work, not just CI). "
+        f"This report bills {billed_h:.0f} h of toil against it: "
+        f"**{share:.0%}** of everything done that month."
+        + (
+            ""
+            if share <= 0.5
+            else " That is too high to defend in a room — lower the per-signal"
+            " minutes before you present it."
+        ),
+    ]
+
+
+def _cost_table(summary: CostSummary) -> list[str]:
+    """The per-signal cost table, largest first."""
+    lines = [
+        "| Toil source | Events | Charged | Engineer time | Engineer € | Compute waste | Compute € |",
+        "|---|---:|---:|---:|---:|---:|---:|",
+    ]
+    for line in summary.lines:
+        charged = "—" if line.charged_count == line.count else f"{line.charged_count}"
+        lines.append(
+            f"| {_KIND_LABELS.get(line.kind, line.kind)} | {line.count} | {charged} "
+            f"| {line.engineer_minutes:.0f} min | {_eur(line.engineer_cost_eur)} "
+            f"| {line.compute_minutes:.0f} min | {_eur(line.compute_cost_eur)} |"
+        )
+    return lines + [
+        "",
+        (
+            "_Charged: failure triage is billed once per broken commit, not once per"
+            " red workflow — one bad push turns several workflows red and a human"
+            " reads the logs once._"
+        ),
+    ]
+
+
+def _monthly_trend(
+    by_month: dict[str, float], complete: list[tuple[str, float]]
+) -> list[str]:
+    """One bar per month, partial months marked so they are not read as a drop."""
+    if not by_month:
+        return []
+    peak = max(by_month.values()) or 1.0
+    full = {m for m, _ in complete}
+    lines = ["", "## Monthly trend", ""]
+    for month, eur in by_month.items():
+        bar = "█" * max(1, round(28 * eur / peak))
+        tail = "" if month in full else "  _(partial month)_"
+        lines.append(f"- `{month}` {bar} {_eur(eur)}{tail}")
+    return lines
+
+
 def build_report(
     runs: list[Run],
     signals: list[Signal],
@@ -95,88 +190,17 @@ def build_report(
     if repos:
         scope += f" across {len(repos)} repos"
 
-    # A 14-month average hides a burst. Headline the last *complete* calendar
-    # month — the partial current month would read as a collapse in toil.
     complete = _complete_months(summary.by_month, runs)
-    sanity: list[str] = []
-    if complete:
-        recent_month, recent_eur = complete[-1]
-        in_month = [s for s in signals if f"{s.run.created_at:%Y-%m}" == recent_month]
-        billed_h = sum(s.engineer_minutes for s in in_month) / 60
-        ceiling_h = keyboard_hours(
-            [r for r in runs if f"{r.created_at:%Y-%m}" == recent_month]
-        )
-        headline = (
-            f"## Bottom line: **{_eur(recent_eur)} in {recent_month}** "
-            f"(last full month)"
-        )
-        context = (
-            f"{_eur(summary.total_eur)} total across {months:.1f} months, "
-            f"but the load is not flat — see the trend. At {recent_month}'s "
-            f"rate that is {billed_h:.0f} engineer-hours a month, "
-            f"{billed_h / HOURS_PER_ENGINEER_MONTH:.0%} of one engineer."
-        )
-        if ceiling_h:
-            share = billed_h / ceiling_h
-            sanity = [
-                "",
-                f"> **Sanity check** — push timing puts at most **{ceiling_h:.0f} h** "
-                f"of human keyboard time in {recent_month} (all work, not just CI). "
-                f"This report bills {billed_h:.0f} h of toil against it: "
-                f"**{share:.0%}** of everything done that month."
-                + (
-                    ""
-                    if share <= 0.5
-                    else " That is too high to defend in a room — lower the per-signal"
-                    " minutes before you present it."
-                ),
-            ]
-    else:
-        headline = (
-            f"## Bottom line: **{_eur(summary.total_eur / months)} per month** of toil"
-        )
-        context = (
-            f"{_eur(summary.total_eur)} total over {months:.1f} months "
-            f"({summary.total_engineer_minutes / 60:.1f} engineer-hours)."
-        )
-
     lines = [
         "# Toil audit",
         "",
         f"_{scope}, {period}. Engineer rate {_eur(hourly_rate_eur)}/h (loaded)._",
         "",
-        headline,
+        *_bottom_line(runs, signals, summary, complete, months),
         "",
-        context,
-        *sanity,
-        "",
-        "| Toil source | Events | Charged | Engineer time | Engineer € | Compute waste | Compute € |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        *_cost_table(summary),
+        *_monthly_trend(summary.by_month, complete),
     ]
-    for line in summary.lines:
-        charged = "—" if line.charged_count == line.count else f"{line.charged_count}"
-        lines.append(
-            f"| {_KIND_LABELS.get(line.kind, line.kind)} | {line.count} | {charged} "
-            f"| {line.engineer_minutes:.0f} min | {_eur(line.engineer_cost_eur)} "
-            f"| {line.compute_minutes:.0f} min | {_eur(line.compute_cost_eur)} |"
-        )
-    lines += [
-        "",
-        (
-            "_Charged: failure triage is billed once per broken commit, not once per"
-            " red workflow — one bad push turns several workflows red and a human"
-            " reads the logs once._"
-        ),
-    ]
-
-    if summary.by_month:
-        peak = max(summary.by_month.values()) or 1.0
-        full = {m for m, _ in complete}
-        lines += ["", "## Monthly trend", ""]
-        for month, eur in summary.by_month.items():
-            bar = "█" * max(1, round(28 * eur / peak))
-            tail = "" if month in full else "  _(partial month)_"
-            lines.append(f"- `{month}` {bar} {_eur(eur)}{tail}")
 
     shared = [t for t in summary.by_template if t.repos > 1][:8]
     if shared:

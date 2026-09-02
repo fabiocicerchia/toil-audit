@@ -136,6 +136,33 @@ class Signal:
     wasted_compute_seconds: float = 0.0
 
 
+def _triage_cost(
+    run: Run,
+    pushes: dict[tuple[str, str], list[tuple]],
+    followers: set[tuple[str, str]],
+    ceiling: float,
+) -> tuple[float, str]:
+    """What the first red run on a commit cost a human, and the evidence for it.
+
+    A fan-out copy is discounted to the application only: the diagnosis was
+    already billed on the first repo the same fix landed in.
+    """
+    gap, by_human = _next_push(run, pushes)
+    cost = _triage_minutes(gap, by_human, ceiling)
+    why = (
+        " — never fixed, nobody looked"
+        if gap is None
+        else f" — not a human, {run.actor} pushed over it"
+        if not by_human
+        else f" — next push {gap:.0f} min later"
+    )
+    if run.commit in followers:
+        return min(cost, APPLY_MINUTES), (
+            " — same fix pushed to several repos, diagnosed once"
+        )
+    return cost, why
+
+
 def detect_signals(
     runs: list[Run],
     minutes: dict[str, float] | None = None,
@@ -167,32 +194,14 @@ def detect_signals(
             first_red = run.commit not in triaged
             triaged.add(run.commit)
             if first_red:
-                gap, by_human = _next_push(run, pushes)
-                cost = _triage_minutes(gap, by_human, minutes["FAILED_RUN"])
-                why = (
-                    " — never fixed, nobody looked"
-                    if gap is None
-                    else f" — not a human, {run.actor} pushed over it"
-                    if not by_human
-                    else f" — next push {gap:.0f} min later"
-                )
-                if run.commit in followers:
-                    cost = min(cost, APPLY_MINUTES)
-                    why = " — same fix pushed to several repos, diagnosed once"
-                detail = f"'{run.label}' failed on {run.head_sha[:7]}{why}"
+                cost, why = _triage_cost(run, pushes, followers, minutes["FAILED_RUN"])
             else:
-                cost, detail = (
-                    0.0,
-                    (
-                        f"'{run.label}' failed on {run.head_sha[:7]}"
-                        " (same commit, already triaged)"
-                    ),
-                )
+                cost, why = 0.0, " (same commit, already triaged)"
             signals.append(
                 Signal(
                     "FAILED_RUN",
                     run,
-                    detail,
+                    f"'{run.label}' failed on {run.head_sha[:7]}{why}",
                     cost,
                     wasted_compute_seconds=run.duration_seconds,
                 )

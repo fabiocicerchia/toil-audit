@@ -13,7 +13,7 @@ from .report import build_report
 from .signals import detect_signals
 
 
-def main(argv=None) -> int:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="toil-audit",
         description="Quantify CI/CD babysitting cost in euros from a workflow-runs export.",
@@ -76,6 +76,11 @@ def main(argv=None) -> int:
         "serves them). Log content is used for matching only — no excerpt "
         "reaches the report",
     )
+    return parser
+
+
+def main(argv=None) -> int:
+    parser = _build_parser()
     args = parser.parse_args(argv)
 
     if bool(args.repo) == bool(args.runs_json):
