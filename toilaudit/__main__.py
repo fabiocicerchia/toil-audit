@@ -3,14 +3,32 @@ python -m toilaudit --repo owner/name [--since 2026-07-01]
 """
 
 import argparse
+import json
+import os
+import sys
 from pathlib import Path
 
 from .attribute import attribute, logs_from_zip
 from .costing import summarize_costs
-from .fetch import fetch_github_runs
+from .fetch import MissingToken, RateLimited, fetch_github_runs
 from .ingest import LOADERS, runs_from_objects
 from .report import build_report
 from .signals import detect_signals
+
+# One exit code per kind of failure, from sysexits(3). Anything not listed here
+# is a bug in this tool and keeps its traceback: a crash dressed up as a handled
+# error is harder to debug than a crash.
+EXIT_CODES: dict[type[BaseException], int] = {
+    MissingToken: os.EX_CONFIG,
+    RateLimited: os.EX_UNAVAILABLE,
+    FileNotFoundError: os.EX_NOINPUT,
+    json.JSONDecodeError: os.EX_DATAERR,
+}
+HANDLED: tuple[type[BaseException], ...] = tuple(EXIT_CODES)
+
+
+def _exit_code(err: BaseException) -> int:
+    return next(code for kind, code in EXIT_CODES.items() if isinstance(err, kind))
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -86,15 +104,20 @@ def main(argv=None) -> int:
     if bool(args.repo) == bool(args.runs_json):
         parser.error("give either an export file or --repo, not both")
 
-    if args.repo:
-        raw = fetch_github_runs(
-            args.repo,
-            created=f">={args.since}" if args.since else "",
-            cache_dir=None if args.no_cache else args.cache_dir,
-        )
-        runs = runs_from_objects(raw)
-    else:
-        runs = LOADERS[args.provider](args.runs_json)
+    try:
+        if args.repo:
+            raw = fetch_github_runs(
+                args.repo,
+                created=f">={args.since}" if args.since else "",
+                cache_dir=None if args.no_cache else args.cache_dir,
+            )
+            runs = runs_from_objects(raw)
+        else:
+            runs = LOADERS[args.provider](args.runs_json)
+    except HANDLED as err:
+        print(f"toil-audit: {err}", file=sys.stderr)
+        return _exit_code(err)
+
     signals = detect_signals(runs)
     summary = summarize_costs(signals, args.rate, args.runner_rate)
     attribution = None
