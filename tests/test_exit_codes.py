@@ -10,7 +10,7 @@ def test_missing_export_file_is_noinput(tmp_path):
     assert cli.main([str(tmp_path / "nope.json")]) == os.EX_NOINPUT
 
 
-def test_unparseable_export_is_dataerr(tmp_path):
+def test_unparsable_export_is_dataerr(tmp_path):
     export = tmp_path / "runs.json"
     export.write_text("not json at all")
     assert cli.main([str(export)]) == os.EX_DATAERR
