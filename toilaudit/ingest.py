@@ -121,8 +121,6 @@ _GITLAB_SOURCE = {
     "trigger": "workflow_dispatch",
 }
 
-_TERMINAL = {"success", "failure", "cancelled", "action_required", "skipped"}
-
 
 def _gitlab_repo(obj: dict) -> str:
     """`https://gitlab.com/group/sub/project/-/pipelines/61` -> `group/sub/project`."""
