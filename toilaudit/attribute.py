@@ -23,71 +23,20 @@ than no ranking.
 """
 
 import io
-import re
 import zipfile
 from dataclasses import dataclass, field
 
-# Per-framework patterns for "this test failed". Anchored on the framework's
-# own failure syntax rather than on the word "error", which appears in passing
-# builds constantly.
-#
-# Each pattern must capture a `path` group; `name` is optional. Sources are the
-# frameworks' default reporters:
-#   pytest   FAILED tests/test_orders.py::test_split - AssertionError
-#   go test  --- FAIL: TestSplit (0.00s)  + the preceding file:line
-#   jest     ● tests/orders.test.js › splits    /  at tests/orders.test.js:12
-#   junit    <testcase classname="tests.orders" name="test_split"><failure
-#   rspec    rspec ./spec/orders_spec.rb:12 # Orders splits
-# Note the lack of a `^` anchor on most of these: GitHub prefixes every log
-# line with an ISO timestamp, so anchoring to the start of the line matches
-# nothing on a real download and everything in a hand-written fixture — the
-# kind of pattern that passes its tests and finds zero failures in production.
-PATTERNS = (
-    re.compile(
-        r"(?:^|\s)FAILED\s+(?P<path>[\w./\\-]+\.py)::(?P<name>[\w:.\[\]-]+)",
-        re.MULTILINE,
-    ),
-    re.compile(
-        r"(?:^|\s)ERROR\s+(?P<path>[\w./\\-]+\.py)::(?P<name>[\w:.\[\]-]+)",
-        re.MULTILINE,
-    ),
-    re.compile(
-        r"(?:^|\s)(?:●|✕|✗)\s+(?P<path>[\w./\\-]+\.(?:test|spec)\.[jt]sx?)\s*[›>]\s*(?P<name>[^\n]+)",
-        re.MULTILINE,
-    ),
-    re.compile(
-        r"(?:^|\s)at\s+(?P<path>[\w./\\-]+\.(?:test|spec)\.[jt]sx?):\d+", re.MULTILINE
-    ),
-    re.compile(r"rspec\s+\./(?P<path>[\w./\\-]+_spec\.rb):\d+", re.MULTILINE),
-    re.compile(
-        r'<testcase[^>]*classname="(?P<path>[\w.]+)"[^>]*name="(?P<name>[^"]+)"[^>]*>\s*<failure',
-        re.MULTILINE,
-    ),
-)
-
-# Go is the exception: `--- FAIL: TestX` names the test but not the file, and
-# the file:line is on an earlier line with nothing tying the two together. So
-# the presence of a FAIL gates it, and the _test.go paths in the same log are
-# taken as the failing files — cruder, but it does not invent an association
-# the log does not actually make.
-_GO_FAIL = re.compile(r"^\s*---\s+FAIL:\s+\w+", re.MULTILINE)
-_GO_FILE = re.compile(r"(?P<path>[\w./\\-]+_test\.go):\d+")
-
-# A path that escapes the repo, or is absolute, is not a test file in this
-# project — it is a dependency's own failing test, or a pattern misfiring.
-_SUSPICIOUS = re.compile(
-    r"(^/)|(^[A-Za-z]:)|(\.\.)|(site-packages)|(node_modules)|(/usr/)"
-)
+from .patterns import GO_FAIL, GO_FILE, PATTERNS, SUSPICIOUS
 
 
 def _go_failures(log_text: str) -> set[str]:
     """Test files from a `go test` log, but only if it reported a failure."""
-    if not _GO_FAIL.search(log_text):
+    if not GO_FAIL.search(log_text):
         return set()
     return {
         match.group("path")
-        for match in _GO_FILE.finditer(log_text)
-        if not _SUSPICIOUS.search(match.group("path"))
+        for match in GO_FILE.finditer(log_text)
+        if not SUSPICIOUS.search(match.group("path"))
     }
 
 
@@ -102,7 +51,7 @@ def failing_tests(log_text: str) -> list[str]:
         for match in pattern.finditer(log_text):
             groups = match.groupdict()
             path = (groups.get("path") or "").strip()
-            if not path or _SUSPICIOUS.search(path):
+            if not path or SUSPICIOUS.search(path):
                 continue
             name = (groups.get("name") or "").strip()
             # The file is the unit someone fixes; the test name is kept when
