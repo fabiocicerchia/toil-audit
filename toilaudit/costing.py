@@ -51,6 +51,16 @@ class CostSummary:
     total_eur: float
 
 
+def _signal_cost(
+    signal: Signal, hourly_rate_eur: float, runner_eur_per_minute: float
+) -> float:
+    """One signal in euros: the engineer's time plus the runner time it wasted."""
+    return (
+        signal.engineer_minutes / 60 * hourly_rate_eur
+        + signal.wasted_compute_seconds / 60 * runner_eur_per_minute
+    )
+
+
 def summarize_costs(
     signals: list[Signal],
     hourly_rate_eur: float = DEFAULT_HOURLY_RATE_EUR,
@@ -61,12 +71,6 @@ def summarize_costs(
     by_template: dict[str, float] = defaultdict(float)
     template_repos: dict[str, set[str]] = defaultdict(set)
     by_month: dict[str, float] = defaultdict(float)
-
-    def cost_of(s: Signal) -> float:
-        return (
-            s.engineer_minutes / 60 * hourly_rate_eur
-            + s.wasted_compute_seconds / 60 * runner_eur_per_minute
-        )
 
     for s in signals:
         per_kind[s.kind].append(s)
@@ -87,7 +91,7 @@ def summarize_costs(
         lines.append(line)
 
     for s in signals:
-        eur = cost_of(s)
+        eur = _signal_cost(s, hourly_rate_eur, runner_eur_per_minute)
         by_workflow[s.run.label] += eur
         by_template[s.run.template] += eur
         template_repos[s.run.template].add(s.run.repo)

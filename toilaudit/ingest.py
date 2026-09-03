@@ -121,8 +121,6 @@ _GITLAB_SOURCE = {
     "trigger": "workflow_dispatch",
 }
 
-_TERMINAL = {"success", "failure", "cancelled", "action_required", "skipped"}
-
 
 def _gitlab_repo(obj: dict) -> str:
     """`https://gitlab.com/group/sub/project/-/pipelines/61` -> `group/sub/project`."""
@@ -229,21 +227,8 @@ def runs_from_objects(raw: list[dict]) -> list[Run]:
 
 
 def load_runs(path: str | Path) -> list[Run]:
-    text = Path(path).read_text().strip()
-    if text.startswith("["):
-        raw = json.loads(text)
-    else:
-        # `gh --paginate` concatenates objects: {"workflow_runs":[...]}{"workflow_runs":[...]}
-        raw = []
-        decoder = json.JSONDecoder()
-        pos = 0
-        while pos < len(text):
-            obj, offset = decoder.raw_decode(text, pos)
-            raw.extend(obj.get("workflow_runs", []))
-            pos = offset
-            while pos < len(text) and text[pos] in " \r\n\t":
-                pos += 1
-    return runs_from_objects(raw)
+    """Load a GitHub Actions export: an array, or concatenated `--paginate` pages."""
+    return runs_from_objects(_load_json_pages(path, "workflow_runs"))
 
 
 LOADERS = {"github": load_runs, "gitlab": load_gitlab_runs}

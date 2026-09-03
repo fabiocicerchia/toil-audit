@@ -96,7 +96,7 @@ def test_token_is_sent_but_never_in_the_url():
 def test_token_comes_from_the_environment_only():
     assert fetch.token_from_env({"GITHUB_TOKEN": "a"}) == "a"
     assert fetch.token_from_env({"GH_TOKEN": "b"}) == "b"
-    with pytest.raises(SystemExit) as err:
+    with pytest.raises(fetch.MissingToken) as err:
         fetch.token_from_env({})
     # The message must point at the environment, not offer a flag.
     assert "GITHUB_TOKEN" in str(err.value)

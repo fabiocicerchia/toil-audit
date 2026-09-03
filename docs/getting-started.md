@@ -16,6 +16,22 @@ python -m toilaudit --help
 
 The [README](README.md) covers what toil-audit does and why.
 
+## Exit codes
+
+Scheduled runs need to tell "the audit failed" from "the audit ran", so each
+expected failure has its own code from `sysexits(3)` rather than a blanket 1:
+
+| Code | Meaning |
+|---|---|
+| 0 | the report was written |
+| 2 | argparse rejected the command line |
+| 65 | the export could not be parsed |
+| 66 | the export file does not exist |
+| 69 | the GitHub API rate-limited the fetch and waiting did not clear it |
+| 78 | no `GITHUB_TOKEN` (or `GH_TOKEN`) in the environment |
+
+Anything else is a bug in toil-audit and still exits with a traceback.
+
 ## Naming the flaky test
 
 `FLAKY_RECOVERY` prices the fail-then-pass loop from run metadata alone, which

@@ -50,6 +50,10 @@ class RateLimited(Exception):
     """Raised when the limit is hit and waiting is not allowed."""
 
 
+class MissingToken(Exception):
+    """Raised when neither token variable is set in the environment."""
+
+
 def token_from_env(env=None) -> str:
     """The API token, from the environment only.
 
@@ -60,8 +64,8 @@ def token_from_env(env=None) -> str:
     for name in TOKEN_ENV:
         if env.get(name):
             return env[name]
-    raise SystemExit(
-        "toil-audit: no API token. Set GITHUB_TOKEN (or GH_TOKEN) — it is read "
+    raise MissingToken(
+        "no API token. Set GITHUB_TOKEN (or GH_TOKEN) — it is read "
         "from the environment only, never passed as a flag."
     )
 
