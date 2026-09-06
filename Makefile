@@ -1,21 +1,55 @@
 # toil-audit
-.PHONY: help setup build test lint clean
+#
+# Arguments for `make run`, e.g. make run ARGS="--repo OWNER/REPO --since 2026-07-01"
+ARGS ?= --help
+
+# Every verb this repository exposes lives here; `make` on its own prints them.
+# FC-GEN-057: the same eight verbs in every repo, each either wired or a
+# declared no-op that says why. None of them exit 0 quietly.
+
+.DEFAULT_GOAL := help
+
+.PHONY: help setup install build run test lint format analyze clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 	  awk 'BEGIN {FS = ":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}'
 
-setup: ## Install the pre-commit hook
+setup: ## Install the dev dependencies and the pre-commit hook
+	pip install -r requirements-dev.txt
 	pre-commit install
 
-lint: ## Run all pre-commit checks on the whole tree
-	pre-commit run --all-files
-
-build: ## Build the project
-	@echo 'nothing to build'
+run: ## Run the analyser (make run ARGS="--repo OWNER/REPO --since ...")
+	python -m toilaudit $(ARGS)
 
 test: ## Run the tests
 	python -m pytest
 
-clean: ## Remove build artifacts
-	@echo "nothing to clean"
+lint: ## Run the whole gate — every hook, every file
+	pre-commit run --all-files
+
+format: ## Format the tree with ruff, the formatter the gate checks
+	ruff format .
+
+analyze: ## Scan the tree the way CI does — vulnerabilities, misconfig, secrets
+	@command -v trivy >/dev/null 2>&1 || { \
+		echo "analyze needs trivy: https://trivy.dev/latest/getting-started/installation/" >&2; \
+		exit 69; }
+	trivy fs --scanners vuln,misconfig,secret --severity CRITICAL,HIGH .
+
+# Fetched API pages are cached here so re-analysing a repo costs no requests.
+# Removing it is the only thing this repo accumulates.
+clean: ## Remove the fetch cache
+	rm -rf .toilaudit-cache
+
+# --- Declared no-ops (FC-GEN-058) ---
+# These exit 0 and say why. They are listed under "Not applicable" in the README.
+
+install: ## Not applicable — there is no package to install
+	@echo "Nothing to install: toilaudit is standard library only and runs from"
+	@echo "the checkout as 'python -m toilaudit'. 'make setup' installs what you"
+	@echo "need to work on it. See README > Not applicable."
+
+build: ## Not applicable — nothing is compiled or packaged
+	@echo "Nothing to build: a pure-Python package with no build step."
+	@echo "See README > Not applicable."

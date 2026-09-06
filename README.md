@@ -85,17 +85,47 @@ python -m unittest discover -s tests -v
 
 ## Install
 
+There is nothing to install: `toilaudit` is standard library only and runs
+from the checkout.
+
 ```sh
 git clone https://github.com/fabiocicerchia/toil-audit.git
 cd toil-audit
-pip install -e .
+make setup          # dev dependencies + the pre-commit hook
 ```
 
 ## Usage
 
 ```sh
-python -m toilaudit --help
+make run                                            # --help
+make run ARGS="--repo OWNER/REPO --since 2026-07-01"
+python -m toilaudit --help                          # the same thing, directly
 ```
+
+### Make targets
+
+`make help` lists them. Every repository in this estate exposes the same eight
+verbs, so you do not have to read a Makefile to find out how to run or test it
+(FC-GEN-057).
+
+| Verb      | What it does here                                        |
+| --------- | -------------------------------------------------------- |
+| `setup`   | `requirements-dev.txt` + the pre-commit hook             |
+| `run`     | `python -m toilaudit $(ARGS)`                            |
+| `test`    | `python -m pytest`                                       |
+| `lint`    | `pre-commit run --all-files` — the whole gate            |
+| `format`  | `ruff format .`                                          |
+| `analyze` | `trivy fs` — vulnerabilities, misconfig, secrets         |
+| `clean`   | Remove `.toilaudit-cache`, where fetched pages are kept  |
+
+#### Not applicable
+
+Two verbs have nothing to do here. They exit 0 and say why rather than
+pretending to work (FC-GEN-058):
+
+- `install` — no packaging metadata and no dependencies; run it from the
+  checkout.
+- `build` — pure Python, nothing to compile.
 
 ## Documentation
 

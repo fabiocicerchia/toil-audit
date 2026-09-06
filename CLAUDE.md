@@ -13,16 +13,21 @@ in `tests/`.
 
 ```sh
 make help         # every verb this repo exposes
-make setup        # Install git hooks and dev tooling
-make lint         # Run all pre-commit checks on the whole tree
-make build        # Build the project
-make test         # Run the tests
-make clean        # Remove build artifacts
+make setup        # requirements-dev.txt + the pre-commit hook
+make run          # python -m toilaudit, ARGS="--repo OWNER/REPO --since ..."
+make test         # python -m pytest
+make lint         # pre-commit run --all-files — the whole gate
+make format       # ruff format .
+make analyze      # trivy fs
+make clean        # Remove the .toilaudit-cache fetch cache
 ```
+
+`install` and `build` are declared no-ops here (FC-GEN-058): the package is
+standard library only, has no packaging metadata, and runs from the checkout.
 
 ## Tooling
 
-- `make setup` installs the pre-commit hook, and that is the whole of it.
+- `make setup` installs `requirements-dev.txt` and the pre-commit hook.
   Don't add a `.githooks/` directory: `core.hooksPath` replaces `.git/hooks/`
   wholesale, so setting it silently stops every pre-commit hook from running.
 - Hooks are pinned by commit SHA with the tag in a trailing comment. A tag can
