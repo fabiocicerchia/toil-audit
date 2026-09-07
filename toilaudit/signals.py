@@ -79,6 +79,13 @@ def _next_push_index(runs: list[Run]) -> dict[tuple[str, str], list[tuple]]:
     return index
 
 
+def _followers_of(cluster: list[Run]) -> set[tuple[str, str]]:
+    """The copies in one sitting's cluster, once it is wide enough to be a fan-out."""
+    if len({r.repo for r in cluster}) < FANOUT_REPOS:
+        return set()
+    return {r.commit for r in cluster[1:]}
+
+
 def _fanout_followers(runs: list[Run]) -> set[tuple[str, str]]:
     """Broken commits that are the same fix landing in yet another repo.
 
@@ -94,11 +101,6 @@ def _fanout_followers(runs: list[Run]) -> set[tuple[str, str]]:
         seen.add(run.commit)
         by_title.setdefault(run.title, []).append(run)
 
-    def followers_of(cluster: list[Run]) -> set[tuple[str, str]]:
-        if len({r.repo for r in cluster}) < FANOUT_REPOS:
-            return set()
-        return {r.commit for r in cluster[1:]}
-
     followers: set[tuple[str, str]] = set()
     for group in by_title.values():
         group.sort(key=lambda r: r.created_at)
@@ -106,11 +108,23 @@ def _fanout_followers(runs: list[Run]) -> set[tuple[str, str]]:
         for run in group[1:]:
             gap = (run.created_at - cluster[-1].created_at).total_seconds() / 60
             if gap > FANOUT_WINDOW_MINUTES:
-                followers |= followers_of(cluster)
+                followers |= _followers_of(cluster)
                 cluster = []
             cluster.append(run)
-        followers |= followers_of(cluster)
+        followers |= _followers_of(cluster)
     return followers
+
+
+def _next_push(
+    run: Run, pushes: dict[tuple[str, str], list[tuple]]
+) -> tuple[float | None, bool]:
+    """Gap to the next *different* commit on this branch, and who pushed it."""
+    branch = pushes.get((run.repo, run.branch), [])
+    i = bisect_right(branch, (run.created_at.timestamp(), run.head_sha))
+    for when, sha, by_human in branch[i:]:
+        if sha != run.head_sha:
+            return max(0.0, when - run.updated_at.timestamp()) / 60, by_human
+    return None, False
 
 
 @dataclass(frozen=True)
@@ -120,6 +134,33 @@ class Signal:
     detail: str
     engineer_minutes: float
     wasted_compute_seconds: float = 0.0
+
+
+def _triage_cost(
+    run: Run,
+    pushes: dict[tuple[str, str], list[tuple]],
+    followers: set[tuple[str, str]],
+    ceiling: float,
+) -> tuple[float, str]:
+    """What the first red run on a commit cost a human, and the evidence for it.
+
+    A fan-out copy is discounted to the application only: the diagnosis was
+    already billed on the first repo the same fix landed in.
+    """
+    gap, by_human = _next_push(run, pushes)
+    cost = _triage_minutes(gap, by_human, ceiling)
+    why = (
+        " — never fixed, nobody looked"
+        if gap is None
+        else f" — not a human, {run.actor} pushed over it"
+        if not by_human
+        else f" — next push {gap:.0f} min later"
+    )
+    if run.commit in followers:
+        return min(cost, APPLY_MINUTES), (
+            " — same fix pushed to several repos, diagnosed once"
+        )
+    return cost, why
 
 
 def detect_signals(
@@ -133,15 +174,6 @@ def detect_signals(
     triaged: set[tuple[str, str]] = set()  # broken commits already read
     pushes = _next_push_index(runs)
     followers = _fanout_followers(runs)
-
-    def next_push(run: Run) -> tuple[float | None, bool]:
-        """Gap to the next *different* commit here, and who pushed it."""
-        branch = pushes.get((run.repo, run.branch), [])
-        i = bisect_right(branch, (run.created_at.timestamp(), run.head_sha))
-        for when, sha, by_human in branch[i:]:
-            if sha != run.head_sha:
-                return max(0.0, when - run.updated_at.timestamp()) / 60, by_human
-        return None, False
 
     for run in runs:  # runs are sorted oldest-first by load_runs()
         key = (run.label, run.head_sha)
@@ -162,32 +194,14 @@ def detect_signals(
             first_red = run.commit not in triaged
             triaged.add(run.commit)
             if first_red:
-                gap, by_human = next_push(run)
-                cost = _triage_minutes(gap, by_human, minutes["FAILED_RUN"])
-                why = (
-                    " — never fixed, nobody looked"
-                    if gap is None
-                    else f" — not a human, {run.actor} pushed over it"
-                    if not by_human
-                    else f" — next push {gap:.0f} min later"
-                )
-                if run.commit in followers:
-                    cost = min(cost, APPLY_MINUTES)
-                    why = " — same fix pushed to several repos, diagnosed once"
-                detail = f"'{run.label}' failed on {run.head_sha[:7]}{why}"
+                cost, why = _triage_cost(run, pushes, followers, minutes["FAILED_RUN"])
             else:
-                cost, detail = (
-                    0.0,
-                    (
-                        f"'{run.label}' failed on {run.head_sha[:7]}"
-                        " (same commit, already triaged)"
-                    ),
-                )
+                cost, why = 0.0, " (same commit, already triaged)"
             signals.append(
                 Signal(
                     "FAILED_RUN",
                     run,
-                    detail,
+                    f"'{run.label}' failed on {run.head_sha[:7]}{why}",
                     cost,
                     wasted_compute_seconds=run.duration_seconds,
                 )

@@ -12,14 +12,14 @@ budget conversation.
 
 ## Toil signals & assumptions
 
-| Signal | What happened | Engineer time (default) |
-|---|---|---|
-| Manual re-run | `run_attempt > 1` — someone pressed re-run and waited | 10 min |
-| Flaky red→green | same commit fails then passes with no new push | 15 min |
-| Manual dispatch | `workflow_dispatch` — a human is the scheduler | 5 min |
-| Queue stall | run queued > 15 min — two context switches | 6 min |
-| Failure triage | logs read once per broken commit, not per red check | 8 min |
-| Approval gate | `action_required` — the run is parked until a human clicks | 5 min |
+| Signal          | What happened                                              | Engineer time (default) |
+| --------------- | ---------------------------------------------------------- | ----------------------- |
+| Manual re-run   | `run_attempt > 1` — someone pressed re-run and waited      | 10 min                  |
+| Flaky red→green | same commit fails then passes with no new push             | 15 min                  |
+| Manual dispatch | `workflow_dispatch` — a human is the scheduler             | 5 min                   |
+| Queue stall     | run queued > 15 min — two context switches                 | 6 min                   |
+| Failure triage  | logs read once per broken commit, not per red check        | 8 min                   |
+| Approval gate   | `action_required` — the run is parked until a human clicks | 5 min                   |
 
 Engineer cost uses a loaded rate (default **€75/h**); wasted runner minutes
 (failed runs, repeat attempts) are priced separately at the GitHub-hosted
@@ -27,6 +27,17 @@ runner rate (default €0.0074/min). Every number is a CLI flag — the audit
 is only as credible as its assumptions are defensible.
 
 ## Run it
+
+```bash
+# straight from the API — no export step, so this can run on a schedule:
+export GITHUB_TOKEN=...            # environment only, never a flag
+python -m toilaudit --repo OWNER/REPO --since 2026-07-01 --out toil-report.md
+
+# pages are cached under .toilaudit-cache, so re-analysing costs nothing
+python -m toilaudit --repo OWNER/REPO --since 2026-07-01 --rate 85
+```
+
+Or from an export, which is still the right thing for a one-off audit:
 
 ```bash
 # export the run history (any repo you can read):
@@ -40,6 +51,10 @@ gh repo list OWNER --limit 200 --json nameWithOwner -q '.[].nameWithOwner' \
   | xargs -I{} gh api 'repos/{}/actions/runs?per_page=100' --paginate > org-runs.json
 
 python -m toilaudit org-runs.json --out org-toil-report.md
+
+# attribute flaky recoveries to the test that caused them (logs on disk):
+gh run download <run-id> --dir logs/   # or: gh api .../logs > logs/<run-id>.zip
+python -m toilaudit runs.json --attribute-logs logs/
 
 # or try the bundled sample:
 python -m toilaudit data/sample_runs.json
@@ -70,17 +85,47 @@ python -m unittest discover -s tests -v
 
 ## Install
 
+There is nothing to install: `toilaudit` is standard library only and runs
+from the checkout.
+
 ```sh
 git clone https://github.com/fabiocicerchia/toil-audit.git
 cd toil-audit
-pip install -e .
+make setup          # dev dependencies + the pre-commit hook
 ```
 
 ## Usage
 
 ```sh
-python -m toilaudit --help
+make run                                            # --help
+make run ARGS="--repo OWNER/REPO --since 2026-07-01"
+python -m toilaudit --help                          # the same thing, directly
 ```
+
+### Make targets
+
+`make help` lists them. Every repository in this estate exposes the same eight
+verbs, so you do not have to read a Makefile to find out how to run or test it
+(FC-GEN-057).
+
+| Verb      | What it does here                                        |
+| --------- | -------------------------------------------------------- |
+| `setup`   | `requirements-dev.txt` + the pre-commit hook             |
+| `run`     | `python -m toilaudit $(ARGS)`                            |
+| `test`    | `python -m pytest`                                       |
+| `lint`    | `pre-commit run --all-files` — the whole gate            |
+| `format`  | `ruff format .`                                          |
+| `analyze` | `trivy fs` — vulnerabilities, misconfig, secrets         |
+| `clean`   | Remove `.toilaudit-cache`, where fetched pages are kept  |
+
+#### Not applicable
+
+Two verbs have nothing to do here. They exit 0 and say why rather than
+pretending to work (FC-GEN-058):
+
+- `install` — no packaging metadata and no dependencies; run it from the
+  checkout.
+- `build` — pure Python, nothing to compile.
 
 ## Documentation
 
