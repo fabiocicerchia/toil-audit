@@ -12,14 +12,14 @@ budget conversation.
 
 ## Toil signals & assumptions
 
-| Signal | What happened | Engineer time (default) |
-|---|---|---|
-| Manual re-run | `run_attempt > 1` — someone pressed re-run and waited | 10 min |
-| Flaky red→green | same commit fails then passes with no new push | 15 min |
-| Manual dispatch | `workflow_dispatch` — a human is the scheduler | 5 min |
-| Queue stall | run queued > 15 min — two context switches | 6 min |
-| Failure triage | logs read once per broken commit, not per red check | 8 min |
-| Approval gate | `action_required` — the run is parked until a human clicks | 5 min |
+| Signal          | What happened                                              | Engineer time (default) |
+| --------------- | ---------------------------------------------------------- | ----------------------- |
+| Manual re-run   | `run_attempt > 1` — someone pressed re-run and waited      | 10 min                  |
+| Flaky red→green | same commit fails then passes with no new push             | 15 min                  |
+| Manual dispatch | `workflow_dispatch` — a human is the scheduler             | 5 min                   |
+| Queue stall     | run queued > 15 min — two context switches                 | 6 min                   |
+| Failure triage  | logs read once per broken commit, not per red check        | 8 min                   |
+| Approval gate   | `action_required` — the run is parked until a human clicks | 5 min                   |
 
 Engineer cost uses a loaded rate (default **€75/h**); wasted runner minutes
 (failed runs, repeat attempts) are priced separately at the GitHub-hosted
