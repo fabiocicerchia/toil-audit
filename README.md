@@ -108,15 +108,15 @@ python -m toilaudit --help                          # the same thing, directly
 verbs, so you do not have to read a Makefile to find out how to run or test it
 (FC-GEN-057).
 
-| Verb      | What it does here                                        |
-| --------- | -------------------------------------------------------- |
-| `setup`   | `requirements-dev.txt` + the pre-commit hook             |
-| `run`     | `python -m toilaudit $(ARGS)`                            |
-| `test`    | `python -m pytest`                                       |
-| `lint`    | `pre-commit run --all-files` — the whole gate            |
-| `format`  | `ruff format .`                                          |
-| `analyze` | `trivy fs` — vulnerabilities, misconfig, secrets         |
-| `clean`   | Remove `.toilaudit-cache`, where fetched pages are kept  |
+| Verb      | What it does here                                       |
+| --------- | ------------------------------------------------------- |
+| `setup`   | `requirements-dev.txt` + the pre-commit hook            |
+| `run`     | `python -m toilaudit $(ARGS)`                           |
+| `test`    | `python -m pytest`                                      |
+| `lint`    | `pre-commit run --all-files` — the whole gate           |
+| `format`  | `ruff format .`                                         |
+| `analyze` | `trivy fs` — vulnerabilities, misconfig, secrets        |
+| `clean`   | Remove `.toilaudit-cache`, where fetched pages are kept |
 
 #### Not applicable
 
