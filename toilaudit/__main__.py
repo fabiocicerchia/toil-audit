@@ -124,7 +124,10 @@ def main(argv=None) -> int:
     # "0.00 EUR per month" on any of them tells a CI gate the pipeline is clean.
     if not runs:
         source = args.repo or args.runs_json
-        print(f"toil-audit: no completed runs in {source} — nothing to audit", file=sys.stderr)
+        print(
+            f"toil-audit: no completed runs in {source} — nothing to audit",
+            file=sys.stderr,
+        )
         return os.EX_DATAERR
 
     signals = detect_signals(runs)
