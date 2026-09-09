@@ -16,6 +16,16 @@ def test_unparsable_export_is_dataerr(tmp_path):
     assert cli.main([str(export)]) == os.EX_DATAERR
 
 
+def test_export_with_no_runs_is_dataerr(tmp_path):
+    """An empty file, and JSON with no `workflow_runs`, are both unusable input
+    rather than an audit that found no toil — a gate must not read either as a
+    clean run."""
+    for name, text in (("empty.json", ""), ("null.json", '{"components": null}')):
+        export = tmp_path / name
+        export.write_text(text)
+        assert cli.main([str(export)]) == os.EX_DATAERR
+
+
 def test_missing_token_is_config(monkeypatch):
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     monkeypatch.delenv("GH_TOKEN", raising=False)

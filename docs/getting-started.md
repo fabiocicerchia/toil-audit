@@ -25,7 +25,7 @@ expected failure has its own code from `sysexits(3)` rather than a blanket 1:
 | ---- | ------------------------------------------------------------------ |
 | 0    | the report was written                                             |
 | 2    | argparse rejected the command line                                 |
-| 65   | the export could not be parsed                                     |
+| 65   | the export could not be parsed, or held no completed runs          |
 | 66   | the export file does not exist                                     |
 | 69   | the GitHub API rate-limited the fetch and waiting did not clear it |
 | 78   | no `GITHUB_TOKEN` (or `GH_TOKEN`) in the environment               |

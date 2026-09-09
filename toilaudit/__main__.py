@@ -118,6 +118,15 @@ def main(argv=None) -> int:
         print(f"toil-audit: {err}", file=sys.stderr)
         return _exit_code(err)
 
+    # An export with nothing in it is not an audit of zero toil, it is an export
+    # this tool could not read: an empty file, a truncated download, or JSON
+    # with no `workflow_runs` array all arrive here as an empty list. Reporting
+    # "0.00 EUR per month" on any of them tells a CI gate the pipeline is clean.
+    if not runs:
+        source = args.repo or args.runs_json
+        print(f"toil-audit: no completed runs in {source} — nothing to audit", file=sys.stderr)
+        return os.EX_DATAERR
+
     signals = detect_signals(runs)
     summary = summarize_costs(signals, args.rate, args.runner_rate)
     attribution = None
