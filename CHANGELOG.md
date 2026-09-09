@@ -5,6 +5,18 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0](https://github.com/fabiocicerchia/toil-audit/compare/v1.1.2...v1.2.0) (2026-09-09)
+
+
+### Features
+
+* **packaging:** make it installable, with a man page ([#50](https://github.com/fabiocicerchia/toil-audit/issues/50)) ([c0f54b2](https://github.com/fabiocicerchia/toil-audit/commit/c0f54b241d40fde07e3d6f1854a3ef4f80c8026f))
+
+
+### Bug Fixes
+
+* exit non-zero when an export holds no completed runs ([#49](https://github.com/fabiocicerchia/toil-audit/issues/49)) ([3b99f8d](https://github.com/fabiocicerchia/toil-audit/commit/3b99f8d39770ff6a9f758eba9a21c1496b918021))
+
 ## [1.1.2](https://github.com/fabiocicerchia/toil-audit/compare/v1.1.1...v1.1.2) (2026-09-04)
 
 ### Bug Fixes
