@@ -45,10 +45,8 @@ clean: ## Remove the fetch cache
 # --- Declared no-ops (FC-GEN-058) ---
 # These exit 0 and say why. They are listed under "Not applicable" in the README.
 
-install: ## Not applicable — there is no package to install
-	@echo "Nothing to install: toilaudit is standard library only and runs from"
-	@echo "the checkout as 'python -m toilaudit'. 'make setup' installs what you"
-	@echo "need to work on it. See README > Not applicable."
+install: ## Install the package (and its man page) with pip
+	pip install .
 
 build: ## Not applicable — nothing is compiled or packaged
 	@echo "Nothing to build: a pure-Python package with no build step."
