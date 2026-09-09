@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "toil-audit"
+description = "Quantify the cost of babysitting CI/CD, in euros"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Fabio Cicerchia" }]
+requires-python = ">=3.10"
+dependencies = []
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/fabiocicerchia/toil-audit"
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+toil-audit = "toilaudit.__main__:main"
+
+[tool.setuptools]
+packages = ["toilaudit"]
+
+# Read from the one place the version already lives, so a release bump does not
+# have to be repeated here and cannot drift from it.
+[tool.setuptools.dynamic]
+version = { file = "version.txt" }
+
+# The man page rides along in the wheel: `pip install` puts it under
+# <prefix>/share/man/man1, which is on the default manpath for a system install
+# and for a --user one alike.
+[tool.setuptools.data-files]
+"share/man/man1" = ["man/toil-audit.1"]

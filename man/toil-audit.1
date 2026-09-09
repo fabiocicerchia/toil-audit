@@ -1,0 +1,98 @@
+.TH TOIL\-AUDIT 1 "2026-09" "toil-audit" "User Commands"
+.SH NAME
+toil-audit \- quantify the cost of babysitting CI/CD, in euros
+.SH SYNOPSIS
+.B toil-audit
+.RI [ runs.json ]
+.RI [ options ]
+.SH DESCRIPTION
+Reads a workflow-run history and prices the human time spent re-running,
+watching and unsticking it \(em so the argument for fixing a flaky pipeline
+is a number rather than a complaint.
+.PP
+The history is either an export passed as an argument, or fetched from the
+GitHub API with
+.BR \-\-repo .
+.SH OPTIONS
+.SS Input
+.TP
+.I runs.json
+An export, e.g.
+.B "gh api 'repos/O/R/actions/runs' \-\-paginate"
+or
+.BR "glab api 'projects/:id/pipelines' \-\-paginate" .
+.TP
+.BI \-\-repo " OWNER/NAME"
+Fetch the history from the GitHub API instead. The token comes from
+.I GITHUB_TOKEN
+or
+.I GH_TOKEN
+in the environment \(em never a flag.
+.TP
+.BI \-\-since " YYYY-MM-DD"
+With
+.BR \-\-repo :
+only runs created on or after this date.
+.TP
+.BI \-\-provider " NAME"
+CI system the export came from (default github).
+.TP
+.BI \-\-cache\-dir " DIR"
+Where fetched pages are cached, so re-analysis does not re-fetch (default
+.IR .toilaudit-cache ).
+.TP
+.B \-\-no\-cache
+With
+.BR \-\-repo :
+always fetch; neither read nor write the cache.
+.SS Costing
+.TP
+.BI \-\-rate " EUR"
+Loaded engineer hourly rate (default 75).
+.TP
+.BI \-\-runner\-rate " EUR"
+Runner cost per minute (default 0.0074).
+.SS Output
+.TP
+.BI \-\-out " FILE"
+Write the Markdown report here instead of standard output.
+.TP
+.BI \-\-attribute\-logs " DIR"
+Attribute flaky recoveries to the test that caused them, reading each
+failed run's log from
+.IR DIR/<run_id>.txt
+(or
+.IR .zip ,
+as the API serves them). Log content is used for matching only \(em no
+excerpt reaches the report.
+.SH EXIT STATUS
+.TP
+.B 0
+A report was produced.
+.TP
+.B non-zero
+The history could not be read or fetched.
+.SH EXAMPLES
+.PP
+From an export:
+.PP
+.RS
+.B gh api 'repos/acme/api/actions/runs' \-\-paginate > runs.json
+.RE
+.PP
+Price it:
+.PP
+.RS
+.B toil-audit runs.json \-\-rate 90 \-\-out toil.md
+.RE
+.PP
+Straight from the API:
+.PP
+.RS
+.B toil-audit \-\-repo acme/api \-\-since 2026-01-01
+.RE
+.SH SEE ALSO
+.BR gh (1).
+Project documentation:
+.UR https://github.com/fabiocicerchia/toil-audit
+.UE
