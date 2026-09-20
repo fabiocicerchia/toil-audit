@@ -5,6 +5,13 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2](https://github.com/fabiocicerchia/toil-audit/compare/v1.2.1...v1.2.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** keep actions: read on the job that uploads sarif ([#64](https://github.com/fabiocicerchia/toil-audit/issues/64)) ([35b3a7c](https://github.com/fabiocicerchia/toil-audit/commit/35b3a7c422600ebfa41809917523b48ca48075dc))
+
 ## [1.2.1](https://github.com/fabiocicerchia/toil-audit/compare/v1.2.0...v1.2.1) (2026-09-11)
 
 
