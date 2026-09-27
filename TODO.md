@@ -3,4 +3,5 @@
 Open items only. Completed work is dropped from here — the CHANGELOG
 is the record of what shipped.
 
-- [ ] Scheduled runs: weekly toil report per repo, Slack delivery.
+Nothing open. The remaining work is tracked in
+[the issue list](https://github.com/fabiocicerchia/toil-audit/issues).
