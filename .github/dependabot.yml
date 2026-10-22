@@ -5,6 +5,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
 
   # Uncomment and set the ecosystem for your project's dependencies.
   # ecosystems: npm, pip, gomod, cargo, bundler, maven, composer, nuget, ...
