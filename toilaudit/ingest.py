@@ -2,7 +2,7 @@
 
     gh   api 'repos/OWNER/REPO/actions/runs?per_page=100' --paginate > runs.json
     glab api 'projects/:id/pipelines?per_page=100'        --paginate > pipelines.json
-    curl -s "$JENKINS_URL/job/NAME/api/json?tree=$JENKINS_TREE"      > builds.json
+    curl -sG --data-urlencode "tree=$JENKINS_TREE" "$JENKINS_URL/job/NAME/api/json" > builds.json
 
 All three normalise onto one `Run` shape, so `signals` and `costing` never learn
 which CI system produced a row. Where the systems genuinely differ — neither
@@ -16,6 +16,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import unquote
 
 # ponytail: GitHub's per-job wall-clock ceiling. `updated_at` is bumped whenever
 # the run *record* changes (log-retention cleanup, annotations), sometimes months
@@ -238,9 +239,14 @@ def _jenkins_actions(obj: dict) -> list[dict]:
 
 
 def _jenkins_job_path(obj: dict) -> list[str]:
-    """`https://ci/job/acme/job/widgets/job/main/42/` -> ["acme", "widgets", "main"]."""
+    """`https://ci/job/acme/job/widgets/job/main/42/` -> ["acme", "widgets", "main"].
+
+    Each segment is URL-decoded once, which gives the job's own name: `My%20Folder`
+    is `My Folder`. A multibranch job is named after its branch with the slash
+    encoded, so `feature/x` is the job `feature%2Fx` (`feature%252Fx` in the URL).
+    """
     parts = (obj.get("url") or "").split("/")
-    return [parts[i + 1] for i, p in enumerate(parts[:-1]) if p == "job"]
+    return [unquote(parts[i + 1]) for i, p in enumerate(parts[:-1]) if p == "job"]
 
 
 def _git_repo(url: str) -> str:
@@ -312,7 +318,7 @@ def _jenkins_workflow(job: list[str], branch: str) -> str:
     branch stays in `branch`; otherwise a fix to one Jenkinsfile reads as a
     dozen separate workflows. A plain job is its own name.
     """
-    if len(job) >= 2 and branch and job[-1] == branch:
+    if len(job) >= 2 and branch and unquote(job[-1]) == branch:
         return job[-2]
     return job[-1] if job else "jenkins"
 

@@ -671,3 +671,56 @@ def test_jenkins_builds_key_is_accepted_as_well_as_allbuilds(tmp_path):
     [run] = load_jenkins_runs(p)
     assert run.run_id == 3  # no queueId: the build number
     assert run.workflow == "app"
+
+
+def test_jenkins_slashed_branch_and_spaced_folder_are_decoded(tmp_path):
+    """Multibranch names a `feature/x` job `feature%2Fx`, and the URL encodes
+    that again; a folder with a space is `%20`. Undecoded, the branch job
+    became its own workflow and the folder kept its escapes."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    def build(n, url, actions):
+        return {
+            "number": n,
+            "queueId": 100 + n,
+            "result": "SUCCESS",
+            "timestamp": 1780000000000 + n,
+            "duration": 1000,
+            "url": url,
+            "actions": actions,
+        }
+
+    branch = [{"lastBuiltRevision": {"SHA1": "abc", "branch": [{"name": "feature/x"}]}}]
+    doc = {
+        "allBuilds": [
+            build(1, "https://ci/job/acme/job/widgets/job/feature%252Fx/1/", branch),
+            build(2, "https://ci/job/My%20Folder/job/nightly/2/", []),
+        ]
+    }
+    p = tmp_path / "builds.json"
+    p.write_text(json.dumps(doc))
+    multibranch, freestyle = load_jenkins_runs(p)
+    assert (multibranch.workflow, multibranch.branch) == ("widgets", "feature/x")
+    assert freestyle.repo == "My Folder"
+
+
+def test_jenkins_same_commit_on_another_branch_is_not_a_retry(tmp_path):
+    """One job building two branches at one sha (a release cut from main) ran
+    twice for two reasons, neither of them a retry."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    def build(n, branch):
+        revision = {"SHA1": "abc", "branch": [{"name": f"origin/{branch}"}]}
+        return {
+            "number": n,
+            "queueId": 200 + n,
+            "result": "SUCCESS",
+            "timestamp": 1780000000000 + n,
+            "duration": 1000,
+            "url": f"https://ci/job/app/{n}/",
+            "actions": [{"lastBuiltRevision": revision}],
+        }
+
+    p = tmp_path / "builds.json"
+    p.write_text(json.dumps({"allBuilds": [build(1, "main"), build(2, "release-1.0")]}))
+    assert [r.run_attempt for r in load_jenkins_runs(p)] == [1, 1]
