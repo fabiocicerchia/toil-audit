@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from itertools import pairwise
 
 from .attribute import summarise
+from .compare import Comparison
 from .costing import CostSummary
 from .ingest import Run
 from .signals import Signal
@@ -57,7 +58,7 @@ def keyboard_hours(runs: list[Run]) -> float:
     return total + sittings * SESSION_LEAD_IN_MINUTES / 60
 
 
-def _complete_months(
+def complete_months(
     by_month: dict[str, float], runs: list[Run]
 ) -> list[tuple[str, float]]:
     """Months the export covers end to end — the partial edges aren't rates."""
@@ -171,12 +172,76 @@ def _monthly_trend(
     return lines
 
 
+def _months(window: list[tuple[str, float]]) -> str:
+    first, last = window[0][0], window[-1][0]
+    span = first if first == last else f"{first} → {last}"
+    return f"{span}, {len(window)} month{'s' if len(window) > 1 else ''}"
+
+
+def _before_after(cmp: Comparison) -> list[str]:
+    """Toil before and after a named change, and what the change returned."""
+    lines = ["", f"## Before and after {cmp.boundary:%Y-%m-%d}", ""]
+    if not cmp.comparable:
+        missing = " and ".join(
+            side for side, w in (("before", cmp.before), ("after", cmp.after)) if not w
+        )
+        return lines + [
+            (
+                f"Not enough history to compare: no complete month {missing} "
+                f"{cmp.boundary_month}. The month of the change is split between "
+                "the two states and partial months are not rates, so neither is used."
+            )
+        ]
+    saving = cmp.saving_eur
+    if saving > 0:
+        verdict = f"**{_eur(saving)} a month less** toil after the change"
+    elif saving < 0:
+        verdict = f"**{_eur(-saving)} a month more** toil after the change"
+    else:
+        verdict = "**no change** in toil per month"
+    lines += [
+        "| Window | Complete months | Toil per month |",
+        "|---|---|---:|",
+        f"| Before | {_months(cmp.before)} | {_eur(cmp.before_eur)} |",
+        f"| After | {_months(cmp.after)} | {_eur(cmp.after_eur)} |",
+        "",
+        f"{verdict}. {cmp.boundary_month} is left out: the change split it.",
+    ]
+    if cmp.fix_cost_eur is None:
+        return lines + [
+            "",
+            "_No ROI: pass `--fix-hours` with the engineer-hours the fix took._",
+        ]
+    cost = f"The fix cost {_eur(cmp.fix_cost_eur)}"
+    if cmp.payback_months is None:
+        return lines + [
+            "",
+            (
+                f"{cost} and has not paid for itself: toil did not fall, so there "
+                "is no saving to repay it from."
+            ),
+        ]
+    net = cmp.returned_eur - cmp.fix_cost_eur
+    so_far = (
+        f"{_eur(net)} net" if net >= 0 else f"{_eur(-net)} short of its cost so far"
+    )
+    return lines + [
+        "",
+        (
+            f"{cost}. At this saving it pays for itself in "
+            f"{cmp.payback_months:.1f} months; over the {len(cmp.after)} measured "
+            f"after it, it has returned {_eur(cmp.returned_eur)}, {so_far}."
+        ),
+    ]
+
+
 def build_report(
     runs: list[Run],
     signals: list[Signal],
     summary: CostSummary,
     hourly_rate_eur: float,
     attribution=None,
+    comparison: Comparison | None = None,
 ) -> str:
     if runs:
         period = f"{runs[0].created_at.date()} → {runs[-1].created_at.date()}"
@@ -190,7 +255,7 @@ def build_report(
     if repos:
         scope += f" across {len(repos)} repos"
 
-    complete = _complete_months(summary.by_month, runs)
+    complete = complete_months(summary.by_month, runs)
     lines = [
         "# Toil audit",
         "",
@@ -200,6 +265,7 @@ def build_report(
         "",
         *_cost_table(summary),
         *_monthly_trend(summary.by_month, complete),
+        *(_before_after(comparison) if comparison else []),
     ]
 
     shared = [t for t in summary.by_template if t.repos > 1][:8]

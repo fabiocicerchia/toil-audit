@@ -77,6 +77,30 @@ Recognised: pytest, go test, jest/vitest, rspec and JUnit XML. Paths outside
 the repo (`site-packages`, `node_modules`, absolute paths) are ignored — a
 dependency's own failing test is not your flaky test.
 
+## What a fix was worth
+
+The monthly trend says what toil costs; `--change` says what a change to it
+returned. Name the change — a date, or the commit the fix landed in — and the
+report costs the complete months before it against the complete months after:
+
+```sh
+python -m toilaudit runs.json --change 2026-03-14 --fix-hours 8
+python -m toilaudit runs.json --change 3f9c2e1     # the fix's first run is the boundary
+```
+
+- The boundary is never inferred from the series. A step in the data sits next
+  to many things that happened that week, and picking one is a claim the
+  report should not make on its own.
+- Only complete months are compared. The month of the change is split between
+  the two states and is left out; so are the partial months at either end of
+  the export, because a truncated last month reads as a saving that did not
+  happen. A month with runs but no toil counts as zero.
+- `--fix-hours` is the engineer time the fix took, priced at `--rate`. With it,
+  the report gives the payback period and what the fix has returned over the
+  months measured so far; without it, ROI is left out and the report says so.
+- If toil went *up* after the change, the report says that too, and that the
+  fix has not paid for itself.
+
 ## Fetching from the API
 
 The export step is what stopped this being scheduled. `--repo` fetches the run

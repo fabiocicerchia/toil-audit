@@ -9,10 +9,11 @@ import sys
 from pathlib import Path
 
 from .attribute import attribute, logs_from_zip
+from .compare import compare, month_series, resolve_boundary
 from .costing import summarize_costs
 from .fetch import MissingToken, RateLimited, fetch_github_runs
 from .ingest import LOADERS, runs_from_objects
-from .report import build_report
+from .report import build_report, complete_months
 from .signals import detect_signals
 
 # One exit code per kind of failure, from sysexits(3). Anything not listed here
@@ -87,6 +88,20 @@ def _build_parser() -> argparse.ArgumentParser:
         "--out", help="write the Markdown report here instead of stdout"
     )
     parser.add_argument(
+        "--change",
+        metavar="DATE|SHA",
+        help="cost the complete months before and after this change — a "
+        "YYYY-MM-DD date, or the commit a fix landed in (its first run marks "
+        "the boundary). Never inferred from the data",
+    )
+    parser.add_argument(
+        "--fix-hours",
+        type=float,
+        metavar="H",
+        help="with --change: engineer-hours the fix took, priced at --rate, so "
+        "the report can state its ROI. Without it no ROI is given",
+    )
+    parser.add_argument(
         "--attribute-logs",
         metavar="DIR",
         help="attribute flaky recoveries to the test that caused them, reading "
@@ -103,6 +118,10 @@ def main(argv=None) -> int:
 
     if bool(args.repo) == bool(args.runs_json):
         parser.error("give either an export file or --repo, not both")
+    if args.fix_hours is not None and not args.change:
+        parser.error("--fix-hours prices a change; name it with --change")
+    if args.fix_hours is not None and args.fix_hours < 0:
+        parser.error("--fix-hours cannot be negative")
 
     try:
         if args.repo:
@@ -140,7 +159,22 @@ def main(argv=None) -> int:
             lambda sig: sig.engineer_minutes / 60.0 * args.rate,
         )
 
-    report = build_report(runs, signals, summary, args.rate, attribution)
+    comparison = None
+    if args.change:
+        try:
+            boundary = resolve_boundary(args.change, runs)
+        except ValueError as err:
+            parser.error(f"--change: {err}")
+        comparison = compare(
+            complete_months(month_series(summary.by_month, runs), runs),
+            boundary,
+            args.fix_hours,
+            args.rate,
+        )
+
+    report = build_report(
+        runs, signals, summary, args.rate, attribution, comparison=comparison
+    )
 
     if args.out:
         with open(args.out, "w") as fh:
