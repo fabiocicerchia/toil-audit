@@ -77,6 +77,40 @@ Recognised: pytest, go test, jest/vitest, rspec and JUnit XML. Paths outside
 the repo (`site-packages`, `node_modules`, absolute paths) are ignored — a
 dependency's own failing test is not your flaky test.
 
+## Jenkins
+
+Jenkins returns almost nothing from `api/json` unless asked, so name the fields.
+One job:
+
+```sh
+TREE='allBuilds[number,queueId,result,timestamp,duration,url,actions[causes[_class,userId],lastBuiltRevision[SHA1,branch[name]],remoteUrls,queuingDurationMillis],changeSets[items[msg]]]'
+curl -fsS -u "$JENKINS_USER:$JENKINS_TOKEN" -G \
+  --data-urlencode "tree=$TREE" "$JENKINS_URL/job/widgets/job/main/api/json" > builds.json
+python -m toilaudit builds.json --provider jenkins
+```
+
+Several jobs go into one file by appending each job's document to it (`>>`);
+the documents are read one after another. For a multibranch pipeline, export
+each branch job (`job/widgets/job/main`, `job/widgets/job/PR-7`, …).
+
+`allBuilds` rather than `builds`, which stops at the newest 100. What each
+field becomes:
+
+- `result` — `SUCCESS`, `FAILURE`, `UNSTABLE` (counted as a failure), `ABORTED`
+  (cancelled), `NOT_BUILT` (skipped). A build still running is left out.
+- causes — a user-started build (including Replay and Rebuild) is a manual
+  dispatch, a timer is a schedule, an SCM or branch event is a push, and a
+  multibranch job named `PR-<n>` is a pull request.
+- `lastBuiltRevision` and `remoteUrls`, from the git plugin, give the sha, the
+  branch and the repository. Without them the job's folder stands in for the
+  repository and the build is never counted as a retry.
+- `queuingDurationMillis` comes from the Metrics plugin. Without it, queue time
+  is zero rather than invented.
+- `queueId` is the run id, because build numbers repeat across jobs; name log
+  files for `--attribute-logs` after it.
+
+`data/sample_jenkins.json` is a worked example of the shape.
+
 ## Fetching from the API
 
 The export step is what stopped this being scheduled. `--repo` fetches the run

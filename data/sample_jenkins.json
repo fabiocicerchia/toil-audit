@@ -1,0 +1,237 @@
+{
+  "_class": "org.jenkinsci.plugins.workflow.job.WorkflowJob",
+  "allBuilds": [
+    {
+      "number": 44,
+      "queueId": 1044,
+      "result": null,
+      "timestamp": 1780315200000,
+      "duration": 0,
+      "url": "https://ci.example.com/job/acme/job/widgets/job/main/44/",
+      "actions": [
+        {
+          "causes": [
+            {
+              "_class": "jenkins.branch.BranchEventCause"
+            }
+          ]
+        },
+        {
+          "_class": "hudson.plugins.git.util.BuildData",
+          "lastBuiltRevision": {
+            "SHA1": "ghi",
+            "branch": [
+              {
+                "name": "refs/remotes/origin/main"
+              }
+            ]
+          },
+          "remoteUrls": [
+            "https://github.com/acme/widgets.git"
+          ]
+        }
+      ],
+      "changeSets": []
+    },
+    {
+      "number": 43,
+      "queueId": 1043,
+      "result": "UNSTABLE",
+      "timestamp": 1780311600000,
+      "duration": 240000,
+      "url": "https://ci.example.com/job/acme/job/widgets/job/main/43/",
+      "actions": [
+        {
+          "causes": [
+            {
+              "_class": "jenkins.branch.BranchEventCause"
+            }
+          ]
+        },
+        {
+          "_class": "hudson.plugins.git.util.BuildData",
+          "lastBuiltRevision": {
+            "SHA1": "def",
+            "branch": [
+              {
+                "name": "refs/remotes/origin/main"
+              }
+            ]
+          },
+          "remoteUrls": [
+            "https://github.com/acme/widgets.git"
+          ]
+        }
+      ],
+      "changeSets": [
+        {
+          "items": [
+            {
+              "msg": "Bump the parser\n\nlong body"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 42,
+      "queueId": 1042,
+      "result": "SUCCESS",
+      "timestamp": 1780308600000,
+      "duration": 230000,
+      "url": "https://ci.example.com/job/acme/job/widgets/job/main/42/",
+      "actions": [
+        {
+          "causes": [
+            {
+              "_class": "hudson.model.Cause$UserIdCause",
+              "userId": "fabio"
+            },
+            {
+              "_class": "org.jenkinsci.plugins.workflow.cps.replay.ReplayCause"
+            }
+          ]
+        },
+        {
+          "_class": "hudson.plugins.git.util.BuildData",
+          "lastBuiltRevision": {
+            "SHA1": "abc",
+            "branch": [
+              {
+                "name": "refs/remotes/origin/main"
+              }
+            ]
+          },
+          "remoteUrls": [
+            "https://github.com/acme/widgets.git"
+          ]
+        },
+        {
+          "_class": "jenkins.metrics.impl.TimeInQueueAction",
+          "queuingDurationMillis": 45000
+        }
+      ],
+      "changeSets": []
+    },
+    {
+      "number": 41,
+      "queueId": 1041,
+      "result": "FAILURE",
+      "timestamp": 1780308000000,
+      "duration": 270000,
+      "url": "https://ci.example.com/job/acme/job/widgets/job/main/41/",
+      "actions": [
+        {
+          "causes": [
+            {
+              "_class": "jenkins.branch.BranchEventCause"
+            }
+          ]
+        },
+        {
+          "_class": "hudson.plugins.git.util.BuildData",
+          "lastBuiltRevision": {
+            "SHA1": "abc",
+            "branch": [
+              {
+                "name": "refs/remotes/origin/main"
+              }
+            ]
+          },
+          "remoteUrls": [
+            "https://github.com/acme/widgets.git"
+          ]
+        },
+        {
+          "_class": "jenkins.metrics.impl.TimeInQueueAction",
+          "queuingDurationMillis": 30000
+        }
+      ],
+      "changeSets": [
+        {
+          "items": [
+            {
+              "msg": "Fix the flaky date test"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+{
+  "_class": "org.jenkinsci.plugins.workflow.job.WorkflowJob",
+  "builds": [
+    {
+      "number": 1,
+      "queueId": 2001,
+      "result": "SUCCESS",
+      "timestamp": 1780304400000,
+      "duration": 200000,
+      "url": "https://ci.example.com/job/acme/job/widgets/job/PR-7/1/",
+      "actions": [
+        {
+          "causes": [
+            {
+              "_class": "jenkins.branch.BranchEventCause"
+            }
+          ]
+        },
+        {
+          "_class": "hudson.plugins.git.util.BuildData",
+          "lastBuiltRevision": {
+            "SHA1": "pr7",
+            "branch": [
+              {
+                "name": "PR-7"
+              }
+            ]
+          },
+          "remoteUrls": [
+            "https://github.com/acme/widgets.git"
+          ]
+        }
+      ],
+      "changeSets": []
+    }
+  ]
+}
+{
+  "_class": "hudson.model.FreeStyleProject",
+  "allBuilds": [
+    {
+      "number": 12,
+      "queueId": 3012,
+      "result": "ABORTED",
+      "timestamp": 1780282800000,
+      "duration": 600000,
+      "url": "https://ci.example.com/job/ops/job/nightly-backup/12/",
+      "actions": [
+        {
+          "causes": [
+            {
+              "_class": "hudson.triggers.TimerTrigger$TimerTriggerCause"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "queueId": 3011,
+      "result": "ABORTED",
+      "timestamp": 1780279200000,
+      "duration": 600000,
+      "url": "https://ci.example.com/job/ops/job/nightly-backup/11/",
+      "actions": [
+        {
+          "causes": [
+            {
+              "_class": "hudson.triggers.TimerTrigger$TimerTriggerCause"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

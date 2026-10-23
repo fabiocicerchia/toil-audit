@@ -580,3 +580,94 @@ def test_gitlab_runs_flow_through_the_signal_detectors(tmp_path):
     signals = detect_signals(load_gitlab_runs(_gitlab_file(tmp_path)))
     kinds = {s.kind for s in signals}
     assert "RERUN" in kinds  # the derived attempt 2 was picked up
+
+
+# --- Jenkins ingestion -----------------------------------------------------
+
+JENKINS_SAMPLE = Path(__file__).resolve().parent.parent / "data" / "sample_jenkins.json"
+
+
+def _jenkins_runs():
+    from toilaudit.ingest import load_jenkins_runs
+
+    return {r.run_id: r for r in load_jenkins_runs(JENKINS_SAMPLE)}
+
+
+def test_jenkins_derives_attempts_from_builds_of_one_commit():
+    runs = _jenkins_runs()
+    assert runs[1041].run_attempt == 1
+    assert runs[1042].run_attempt == 2  # replayed on the same sha and branch
+    assert runs[1043].run_attempt == 1  # next commit, back to 1
+    assert 1044 not in runs  # still building: null result is not terminal
+    # No git revision: nothing says #12 retried #11, so neither is a retry.
+    assert runs[3011].run_attempt == runs[3012].run_attempt == 1
+
+
+def test_jenkins_vocabulary_maps_onto_the_detectors():
+    runs = _jenkins_runs()
+    assert runs[1041].conclusion == "failure"
+    assert runs[1043].conclusion == "failure"  # UNSTABLE: tests failed
+    assert runs[3011].conclusion == "cancelled"  # ABORTED
+    assert runs[1041].event == "push"
+    assert runs[1042].event == "workflow_dispatch"  # Replay, started by a user
+    assert runs[1042].actor == "fabio" and runs[1042].is_human
+    assert runs[2001].event == "pull_request"  # multibranch PR-<n> job
+    assert runs[3011].event == "schedule"
+
+
+def test_jenkins_repo_and_workflow_derivation():
+    runs = _jenkins_runs()
+    # The git remote names the repository, whichever job built it.
+    assert runs[1041].repo == runs[2001].repo == "acme/widgets"
+    # Every branch job of a multibranch pipeline is one workflow.
+    assert runs[1041].workflow == runs[2001].workflow == "widgets"
+    assert runs[1041].branch == "main" and runs[2001].branch == "PR-7"
+    assert runs[1041].head_sha == "abc"
+    # A plain job without git data: its folder stands in for the repository.
+    assert runs[3011].repo == "ops" and runs[3011].workflow == "nightly-backup"
+    assert runs[1043].title == "Bump the parser"
+
+
+def test_jenkins_timings():
+    runs = _jenkins_runs()
+    assert runs[1041].queue_seconds == 30  # Metrics plugin's queuingDurationMillis
+    assert runs[1041].duration_seconds == 270
+    assert runs[1043].queue_seconds == 0  # absent: zero, not invented
+
+
+def test_jenkins_git_remote_forms():
+    from toilaudit.ingest import _git_repo
+
+    assert _git_repo("https://github.com/acme/widgets.git") == "acme/widgets"
+    assert _git_repo("git@github.com:acme/widgets.git") == "acme/widgets"
+    assert _git_repo("ssh://git@gitlab.com/group/sub/proj.git") == "group/sub/proj"
+    assert _git_repo("widgets") == ""
+
+
+def test_jenkins_runs_flow_through_the_signal_detectors():
+    from toilaudit.ingest import LOADERS
+    from toilaudit.signals import detect_signals
+
+    kinds = {s.kind for s in detect_signals(LOADERS["jenkins"](JENKINS_SAMPLE))}
+    assert {"RERUN", "FLAKY_RECOVERY", "MANUAL_DISPATCH"} <= kinds
+
+
+def test_jenkins_builds_key_is_accepted_as_well_as_allbuilds(tmp_path):
+    from toilaudit.ingest import load_jenkins_runs
+
+    doc = {
+        "builds": [
+            {
+                "number": 3,
+                "result": "SUCCESS",
+                "timestamp": 1780000000000,
+                "duration": 1000,
+                "url": "https://ci/job/app/3/",
+            }
+        ]
+    }
+    p = tmp_path / "builds.json"
+    p.write_text(json.dumps(doc))
+    [run] = load_jenkins_runs(p)
+    assert run.run_id == 3  # no queueId: the build number
+    assert run.workflow == "app"

@@ -1,18 +1,20 @@
-"""Load CI runs from a GitHub Actions or GitLab CI export.
+"""Load CI runs from a GitHub Actions, GitLab CI or Jenkins export.
 
     gh   api 'repos/OWNER/REPO/actions/runs?per_page=100' --paginate > runs.json
     glab api 'projects/:id/pipelines?per_page=100'        --paginate > pipelines.json
+    curl -s "$JENKINS_URL/job/NAME/api/json?tree=$JENKINS_TREE"      > builds.json
 
-Both normalise onto one `Run` shape, so `signals` and `costing` never learn
-which CI system produced a row. Where the two systems genuinely differ — GitLab
-has no run-attempt counter, and its list endpoint omits start/finish times —
-the difference is resolved here and documented at the point it is resolved,
-rather than leaking a second vocabulary into the detectors.
+All three normalise onto one `Run` shape, so `signals` and `costing` never learn
+which CI system produced a row. Where the systems genuinely differ — neither
+GitLab nor Jenkins has a run-attempt counter, and GitLab's list endpoint omits
+start/finish times — the difference is resolved here and documented at the
+point it is resolved, rather than leaking a second vocabulary into the
+detectors.
 """
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # ponytail: GitHub's per-job wall-clock ceiling. `updated_at` is bumped whenever
@@ -192,8 +194,206 @@ def load_gitlab_runs(path: str | Path) -> list[Run]:
     return runs
 
 
-def _load_json_pages(path: str | Path, key: str) -> list[dict]:
+# Jenkins `result` -> the GitHub vocabulary. UNSTABLE is a build whose tests
+# failed after it compiled: red to whoever has to look at it, so `failure`.
+# A build still running has a null result and is not terminal, so it is left
+# out exactly as GitLab's `running` is.
+_JENKINS_RESULT = {
+    "SUCCESS": "success",
+    "FAILURE": "failure",
+    "UNSTABLE": "failure",
+    "ABORTED": "cancelled",
+    "NOT_BUILT": "skipped",
+}
+
+# Cause class -> GitHub `event`. Matched on the class name's tail, because the
+# package prefix differs across plugin versions. A user-started build is
+# workflow_dispatch whatever else is listed with it: "someone pressed Build"
+# is the manual-trigger signal, and Replay/Rebuild always carry a UserIdCause.
+_JENKINS_CAUSE = (
+    ("UserIdCause", "workflow_dispatch"),
+    ("ReplayCause", "workflow_dispatch"),
+    ("RebuildCause", "workflow_dispatch"),
+    ("TimerTriggerCause", "schedule"),
+    ("UpstreamCause", "workflow_run"),
+    ("SCMTriggerCause", "push"),
+    ("BranchEventCause", "push"),
+    ("BranchIndexingCause", "push"),
+    ("GitHubPushCause", "push"),
+    ("GitLabWebHookCause", "push"),
+)
+
+# What `api/json` has to be asked for. Jenkins returns almost nothing without a
+# `tree`, and asking for everything costs the controller a full serialisation
+# of every build. `allBuilds` rather than `builds`: the latter stops at 100.
+JENKINS_TREE = (
+    "allBuilds[number,queueId,result,timestamp,duration,url,"
+    "actions[causes[_class,userId],lastBuiltRevision[SHA1,branch[name]],"
+    "remoteUrls,queuingDurationMillis],changeSets[items[msg]]]"
+)
+
+
+def _jenkins_actions(obj: dict) -> list[dict]:
+    return [a for a in obj.get("actions") or [] if isinstance(a, dict)]
+
+
+def _jenkins_job_path(obj: dict) -> list[str]:
+    """`https://ci/job/acme/job/widgets/job/main/42/` -> ["acme", "widgets", "main"]."""
+    parts = (obj.get("url") or "").split("/")
+    return [parts[i + 1] for i, p in enumerate(parts[:-1]) if p == "job"]
+
+
+def _git_repo(url: str) -> str:
+    """The path after the host: `https://github.com/acme/widgets.git` or
+    `git@github.com:acme/widgets` -> `acme/widgets`; GitLab subgroups are kept."""
+    url = url.strip()
+    if "://" in url:
+        _, _, rest = url.split("://", 1)[1].partition("/")
+    elif "@" in url.split(":", 1)[0] and ":" in url:  # scp-style git@host:path
+        rest = url.split(":", 1)[1]
+    else:
+        return ""
+    rest = rest.strip("/").removesuffix(".git")
+    return rest if "/" in rest else ""
+
+
+def _jenkins_revision(obj: dict) -> tuple[str, str]:
+    """(sha, branch) from the git plugin's BuildData, or empty strings."""
+    for action in _jenkins_actions(obj):
+        revision = action.get("lastBuiltRevision") or {}
+        if revision.get("SHA1"):
+            branches = revision.get("branch") or [{}]
+            name = (branches[0] or {}).get("name", "")
+            for prefix in ("refs/remotes/origin/", "refs/heads/", "origin/"):
+                if name.startswith(prefix):
+                    name = name[len(prefix) :]
+                    break
+            return revision["SHA1"], name
+    return "", ""
+
+
+def _jenkins_repo(obj: dict, job: list[str]) -> str:
+    """The git remote's owner/name, else the job's folder path.
+
+    The remote is the right identity: several Jenkins jobs commonly build one
+    repository. Without the git plugin's data the folder path is the closest
+    thing — the job's own name is left to `workflow`.
+    """
+    for action in _jenkins_actions(obj):
+        for url in action.get("remoteUrls") or []:
+            if repo := _git_repo(url):
+                return repo
+    return "/".join(job[:-1])
+
+
+def _jenkins_event(obj: dict, job: list[str]) -> tuple[str, str]:
+    """(event, actor) from the build's causes."""
+    classes, actor = [], ""
+    for action in _jenkins_actions(obj):
+        for cause in action.get("causes") or []:
+            classes.append(cause.get("_class", ""))
+            actor = actor or cause.get("userId") or ""
+    for tail, event in _JENKINS_CAUSE:
+        if any(c.endswith(tail) for c in classes):
+            # Branch-source plugins name a pull request's job `PR-<n>`; that
+            # is the only place a PR build says what it is.
+            if event == "push" and job and job[-1].startswith("PR-"):
+                return "pull_request", actor
+            return event, actor
+    return "unknown", actor
+
+
+def _jenkins_workflow(job: list[str], branch: str) -> str:
+    """The pipeline a build belongs to, across branches.
+
+    A multibranch pipeline gives every branch its own job, named after the
+    branch (`widgets/main`, `widgets/PR-7`). GitHub's equivalent is one
+    workflow running on many branches, so the parent is the workflow and the
+    branch stays in `branch`; otherwise a fix to one Jenkinsfile reads as a
+    dozen separate workflows. A plain job is its own name.
+    """
+    if len(job) >= 2 and branch and job[-1] == branch:
+        return job[-2]
+    return job[-1] if job else "jenkins"
+
+
+def _to_jenkins_run(obj: dict, attempt: int) -> Run:
+    job = _jenkins_job_path(obj)
+    sha, branch = _jenkins_revision(obj)
+    event, actor = _jenkins_event(obj, job)
+    started = datetime.fromtimestamp(obj["timestamp"] / 1000, tz=timezone.utc)
+    queued_ms = next(
+        (
+            a["queuingDurationMillis"]
+            for a in _jenkins_actions(obj)
+            if isinstance(a.get("queuingDurationMillis"), int | float)
+        ),
+        0,
+    )
+    messages = [
+        item.get("msg", "")
+        for change in obj.get("changeSets") or []
+        for item in change.get("items") or []
+    ]
+    return Run(
+        # queueId is unique across the controller; `number` is only unique
+        # within one job, and two jobs' build #12 would otherwise collide.
+        run_id=obj.get("queueId") or obj["number"],
+        workflow=_jenkins_workflow(job, branch),
+        event=event,
+        conclusion=_JENKINS_RESULT[obj["result"]],
+        run_attempt=attempt,
+        head_sha=sha,
+        created_at=started - timedelta(milliseconds=queued_ms),
+        started_at=started,
+        updated_at=started + timedelta(milliseconds=obj.get("duration") or 0),
+        repo=_jenkins_repo(obj, job),
+        branch=branch,
+        actor=actor,
+        title=(messages[0] if messages else "").split("\n")[0],
+    )
+
+
+def load_jenkins_runs(path: str | Path) -> list[Run]:
+    """Load Jenkins builds and normalise them onto the same `Run` shape.
+
+    Input is a job's `api/json` with `tree=JENKINS_TREE` — an object with an
+    `allBuilds` (or `builds`) array — and several jobs' documents concatenated
+    into one file are read as one export.
+
+    **Attempts are derived, not read**, as for GitLab: Replay, Rebuild and a
+    second "Build Now" all produce a new build number. Builds are grouped by
+    (job, sha, branch) in start order, so the second build of one commit in one
+    job is attempt 2. A build with no git revision is never grouped — there is
+    nothing to say it retried anything.
+
+    Queue time comes from the Metrics plugin's `queuingDurationMillis`; without
+    it queue time is zero rather than invented.
+    """
+    raw = _load_json_pages(path, ("allBuilds", "builds"))
+    ordered = sorted(
+        (o for o in raw if o.get("result") in _JENKINS_RESULT and "timestamp" in o),
+        key=lambda o: o["timestamp"],
+    )
+    attempts: dict[tuple, int] = {}
+    runs = []
+    for obj in ordered:
+        sha, branch = _jenkins_revision(obj)
+        job = tuple(_jenkins_job_path(obj))
+        key = (
+            (job, sha, branch) if sha else (job, obj.get("number"), obj.get("queueId"))
+        )
+        attempts[key] = attempts.get(key, 0) + 1
+        runs.append(_to_jenkins_run(obj, attempts[key]))
+    runs.sort(key=lambda r: r.created_at)
+    return runs
+
+
+def _load_json_pages(path: str | Path, key: str | tuple[str, ...]) -> list[dict]:
     """A JSON array, concatenated `--paginate` pages, or {"<key>": [...]}.
+
+    `key` may name alternatives, first present wins per document — Jenkins
+    calls the same array `allBuilds` or `builds` depending on what was asked.
 
     One decoder loop covers all three: `--paginate` concatenates whole documents
     with nothing between them, so `json.loads` on the whole file fails on the
@@ -208,7 +408,8 @@ def _load_json_pages(path: str | Path, key: str) -> list[dict]:
         if isinstance(obj, list):
             out.extend(obj)
         elif isinstance(obj, dict):
-            out.extend(obj.get(key, []))
+            keys = (key,) if isinstance(key, str) else key
+            out.extend(next((obj[k] for k in keys if k in obj), []))
         pos = offset
         while pos < len(text) and text[pos] in " \r\n\t":
             pos += 1
@@ -231,4 +432,8 @@ def load_runs(path: str | Path) -> list[Run]:
     return runs_from_objects(_load_json_pages(path, "workflow_runs"))
 
 
-LOADERS = {"github": load_runs, "gitlab": load_gitlab_runs}
+LOADERS = {
+    "github": load_runs,
+    "gitlab": load_gitlab_runs,
+    "jenkins": load_jenkins_runs,
+}
