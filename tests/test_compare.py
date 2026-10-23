@@ -173,3 +173,26 @@ def test_an_unknown_commit_is_refused_rather_than_guessed(tmp_path):
     path = _export(tmp_path, {"2026-01": 1})
     with pytest.raises(SystemExit):
         cli.main([str(path), "--change", "deadbee"])
+
+
+def test_no_change_in_toil_never_pays_back_rather_than_dividing_by_zero():
+    complete = [("2026-01", 200.0), ("2026-03", 200.0)]
+    cmp = compare(
+        complete, datetime(2026, 2, 1, tzinfo=UTC), fix_hours=2, hourly_rate_eur=RATE
+    )
+    assert cmp.saving_eur == 0
+    assert cmp.payback_months is None
+
+
+def test_what_a_fix_returned_counts_the_months_after_it_only():
+    complete = [("2026-01", 300.0), ("2026-03", 100.0), ("2026-04", 100.0)]
+    cmp = compare(complete, datetime(2026, 2, 1, tzinfo=UTC), 1, RATE)
+    assert cmp.returned_eur == 400  # 200 a month, for the two months measured after
+
+
+def test_the_report_states_what_the_fix_has_netted_so_far(tmp_path, capsys):
+    path = _export(
+        tmp_path, {"2026-01": 6, "2026-02": 6, "2026-03": 1, "2026-04": 1, "2026-05": 1}
+    )
+    assert cli.main([str(path), "--change", "2026-02-20", "--fix-hours", "1000"]) == 0
+    assert "short of its cost so far" in capsys.readouterr().out
