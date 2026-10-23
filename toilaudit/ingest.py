@@ -254,7 +254,7 @@ def _git_repo(url: str) -> str:
     `git@github.com:acme/widgets` -> `acme/widgets`; GitLab subgroups are kept."""
     url = url.strip()
     if "://" in url:
-        _, _, rest = url.split("://", 1)[1].partition("/")
+        rest = url.split("://", 1)[1].partition("/")[2]
     elif "@" in url.split(":", 1)[0] and ":" in url:  # scp-style git@host:path
         rest = url.split(":", 1)[1]
     else:
@@ -318,6 +318,8 @@ def _jenkins_workflow(job: list[str], branch: str) -> str:
     branch stays in `branch`; otherwise a fix to one Jenkinsfile reads as a
     dozen separate workflows. A plain job is its own name.
     """
+    # Decoded again: a branch job's name still has its slash encoded once,
+    # as _jenkins_job_path explains.
     if len(job) >= 2 and branch and unquote(job[-1]) == branch:
         return job[-2]
     return job[-1] if job else "jenkins"
@@ -406,6 +408,7 @@ def _load_json_pages(path: str | Path, key: str | tuple[str, ...]) -> list[dict]
     second one. Reading document by document is the only shape that works for
     every export at once.
     """
+    keys = (key,) if isinstance(key, str) else key
     text = Path(path).read_text().strip()
     out: list[dict] = []
     decoder, pos = json.JSONDecoder(), 0
@@ -414,7 +417,6 @@ def _load_json_pages(path: str | Path, key: str | tuple[str, ...]) -> list[dict]
         if isinstance(obj, list):
             out.extend(obj)
         elif isinstance(obj, dict):
-            keys = (key,) if isinstance(key, str) else key
             out.extend(next((obj[k] for k in keys if k in obj), []))
         pos = offset
         while pos < len(text) and text[pos] in " \r\n\t":
