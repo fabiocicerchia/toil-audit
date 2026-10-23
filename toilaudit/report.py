@@ -172,7 +172,7 @@ def _monthly_trend(
     return lines
 
 
-def _months(window: list[tuple[str, float]]) -> str:
+def _window_label(window: list[tuple[str, float]]) -> str:
     first, last = window[0][0], window[-1][0]
     span = first if first == last else f"{first} → {last}"
     return f"{span}, {len(window)} month{'s' if len(window) > 1 else ''}"
@@ -202,8 +202,8 @@ def _before_after(cmp: Comparison) -> list[str]:
     lines += [
         "| Window | Complete months | Toil per month |",
         "|---|---|---:|",
-        f"| Before | {_months(cmp.before)} | {_eur(cmp.before_eur)} |",
-        f"| After | {_months(cmp.after)} | {_eur(cmp.after_eur)} |",
+        f"| Before | {_window_label(cmp.before)} | {_eur(cmp.before_eur)} |",
+        f"| After | {_window_label(cmp.after)} | {_eur(cmp.after_eur)} |",
         "",
         f"{verdict}. {cmp.boundary_month} is left out: the change split it.",
     ]
