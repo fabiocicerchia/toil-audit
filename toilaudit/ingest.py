@@ -417,6 +417,17 @@ def _to_jenkins_run(obj: dict, attempt: int) -> Run:
     )
 
 
+def _jenkins_attempt_key(obj: dict) -> tuple:
+    """What a retry of this build shares with it, or a key only it has."""
+    sha, branch = _jenkins_revision(obj)
+    job = _jenkins_job_path(obj)
+    # A timer rebuilds whatever is checked out: last night's commit built
+    # again tonight is the schedule, not someone pressing re-run.
+    if sha and branch and _jenkins_event(obj, job)[0] != "schedule":
+        return tuple(job), sha, branch
+    return tuple(job), obj.get("number"), obj.get("queueId")
+
+
 def load_jenkins_runs(path: str | Path) -> list[Run]:
     """Load Jenkins builds and normalise them onto the same `Run` shape.
 
@@ -442,16 +453,7 @@ def load_jenkins_runs(path: str | Path) -> list[Run]:
     attempts: dict[tuple, int] = {}
     runs = []
     for obj in ordered:
-        sha, branch = _jenkins_revision(obj)
-        job = _jenkins_job_path(obj)
-        # A timer rebuilds whatever is checked out: last night's commit built
-        # again tonight is the schedule, not someone pressing re-run.
-        retryable = sha and branch and _jenkins_event(obj, job)[0] != "schedule"
-        key = (
-            (tuple(job), sha, branch)
-            if retryable
-            else (tuple(job), obj.get("number"), obj.get("queueId"))
-        )
+        key = _jenkins_attempt_key(obj)
         attempts[key] = attempts.get(key, 0) + 1
         runs.append(_to_jenkins_run(obj, attempts[key]))
     runs.sort(key=lambda r: r.created_at)
