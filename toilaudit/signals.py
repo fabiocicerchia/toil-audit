@@ -68,11 +68,11 @@ def _triage_minutes(
 
 
 def _next_push_index(runs: list[Run]) -> dict[tuple[str, str], list[tuple]]:
-    """Per (repo, branch): push time, sha and whether a human pushed it."""
+    """Per (repo, branch): push time, sha, whether a human pushed it, and who."""
     index: dict[tuple[str, str], list[tuple]] = {}
     for run in runs:
         index.setdefault((run.repo, run.branch), []).append(
-            (run.created_at.timestamp(), run.head_sha, run.is_human)
+            (run.created_at.timestamp(), run.head_sha, run.is_human, run.actor)
         )
     for pushes in index.values():
         pushes.sort()
@@ -96,7 +96,10 @@ def _fanout_followers(runs: list[Run]) -> set[tuple[str, str]]:
     by_title: dict[str, list[Run]] = {}
     seen: set[tuple[str, str]] = set()
     for run in runs:
-        if run.conclusion != "failure" or not run.title or run.commit in seen:
+        # No sha, no commit: nothing to say two repos received the same fix.
+        if run.conclusion != "failure" or not run.title or not run.head_sha:
+            continue
+        if run.commit in seen:
             continue
         seen.add(run.commit)
         by_title.setdefault(run.title, []).append(run)
@@ -117,14 +120,14 @@ def _fanout_followers(runs: list[Run]) -> set[tuple[str, str]]:
 
 def _next_push(
     run: Run, pushes: dict[tuple[str, str], list[tuple]]
-) -> tuple[float | None, bool]:
+) -> tuple[float | None, bool, str]:
     """Gap to the next *different* commit on this branch, and who pushed it."""
     branch = pushes.get((run.repo, run.branch), [])
     i = bisect_right(branch, (run.created_at.timestamp(), run.head_sha))
-    for when, sha, by_human in branch[i:]:
+    for when, sha, by_human, actor in branch[i:]:
         if sha != run.head_sha:
-            return max(0.0, when - run.updated_at.timestamp()) / 60, by_human
-    return None, False
+            return max(0.0, when - run.updated_at.timestamp()) / 60, by_human, actor
+    return None, False, ""
 
 
 @dataclass(frozen=True)
@@ -147,12 +150,12 @@ def _triage_cost(
     A fan-out copy is discounted to the application only: the diagnosis was
     already billed on the first repo the same fix landed in.
     """
-    gap, by_human = _next_push(run, pushes)
+    gap, by_human, pusher = _next_push(run, pushes)
     cost = _triage_minutes(gap, by_human, ceiling)
     why = (
         " — never fixed, nobody looked"
         if gap is None
-        else f" — not a human, {run.actor} pushed over it"
+        else f" — not a human, {pusher or 'an unnamed trigger'} pushed over it"
         if not by_human
         else f" — next push {gap:.0f} min later"
     )
@@ -190,9 +193,12 @@ def detect_signals(
             )
 
         if run.conclusion == "failure":
-            seen_failures[key] = run
-            first_red = run.commit not in triaged
-            triaged.add(run.commit)
+            # An empty sha (a Jenkins job without git data) identifies no
+            # commit, so it can neither recover nor repeat an earlier failure.
+            first_red = not run.head_sha or run.commit not in triaged
+            if run.head_sha:
+                seen_failures[key] = run
+                triaged.add(run.commit)
             if first_red:
                 cost, why = _triage_cost(run, pushes, followers, minutes["FAILED_RUN"])
             else:
