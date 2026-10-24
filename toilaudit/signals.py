@@ -190,9 +190,12 @@ def detect_signals(
             )
 
         if run.conclusion == "failure":
-            seen_failures[key] = run
-            first_red = run.commit not in triaged
-            triaged.add(run.commit)
+            # An empty sha (a Jenkins job without git data) identifies no
+            # commit, so it can neither recover nor repeat an earlier failure.
+            first_red = not run.head_sha or run.commit not in triaged
+            if run.head_sha:
+                seen_failures[key] = run
+                triaged.add(run.commit)
             if first_red:
                 cost, why = _triage_cost(run, pushes, followers, minutes["FAILED_RUN"])
             else:

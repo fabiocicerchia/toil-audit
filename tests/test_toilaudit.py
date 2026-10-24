@@ -724,3 +724,50 @@ def test_jenkins_same_commit_on_another_branch_is_not_a_retry(tmp_path):
     p = tmp_path / "builds.json"
     p.write_text(json.dumps({"allBuilds": [build(1, "main"), build(2, "release-1.0")]}))
     assert [r.run_attempt for r in load_jenkins_runs(p)] == [1, 1]
+
+
+def test_jenkins_concatenated_job_documents_are_one_export(tmp_path):
+    """`>>` appends each job's document to one file; mixing `allBuilds` and
+    `builds` across documents must still read every build."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    def doc(key, n, job):
+        build = {
+            "number": n,
+            "queueId": 300 + n,
+            "result": "SUCCESS",
+            "timestamp": 1780000000000 + n,
+            "duration": 1000,
+            "url": f"https://ci/job/{job}/{n}/",
+        }
+        return json.dumps({key: [build]}, indent=2)
+
+    p = tmp_path / "builds.json"
+    p.write_text(doc("allBuilds", 1, "app") + "\n" + doc("builds", 2, "lib") + "\n")
+    assert [r.workflow for r in load_jenkins_runs(p)] == ["app", "lib"]
+
+
+def test_failures_without_a_sha_are_not_correlated(tmp_path):
+    """A Jenkins job with no git data has an empty sha on every build: a later
+    green build is not a recovery of an earlier red one, and a second red build
+    is not the same broken commit already triaged."""
+    from toilaudit.ingest import load_jenkins_runs
+    from toilaudit.signals import detect_signals
+
+    def build(n, result):
+        return {
+            "number": n,
+            "queueId": 400 + n,
+            "result": result,
+            "timestamp": 1780000000000 + n * 60000,
+            "duration": 1000,
+            "url": f"https://ci/job/ops/job/backup/{n}/",
+        }
+
+    builds = [build(1, "FAILURE"), build(2, "FAILURE"), build(3, "SUCCESS")]
+    p = tmp_path / "builds.json"
+    p.write_text(json.dumps({"allBuilds": builds}))
+    signals = detect_signals(load_jenkins_runs(p))
+    assert "FLAKY_RECOVERY" not in {s.kind for s in signals}
+    failed = [s for s in signals if s.kind == "FAILED_RUN"]
+    assert len(failed) == 2 and all(s.engineer_minutes > 0 for s in failed)

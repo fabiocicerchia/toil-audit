@@ -82,6 +82,8 @@ dependency's own failing test is not your flaky test.
 Jenkins returns almost nothing from `api/json` unless asked, so name the fields.
 One job:
 
+`curl -u` sends the token in the clear unless `JENKINS_URL` is `https://`.
+
 ```sh
 TREE='allBuilds[number,queueId,result,timestamp,duration,url,actions[causes[_class,userId],lastBuiltRevision[SHA1,branch[name]],remoteUrls,queuingDurationMillis],changeSets[items[msg]]]'
 curl -fsS -u "$JENKINS_USER:$JENKINS_TOKEN" -G \

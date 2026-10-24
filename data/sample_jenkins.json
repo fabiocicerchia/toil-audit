@@ -1,5 +1,4 @@
 {
-  "_class": "org.jenkinsci.plugins.workflow.job.WorkflowJob",
   "allBuilds": [
     {
       "number": 44,
@@ -156,12 +155,7 @@
           ]
         }
       ]
-    }
-  ]
-}
-{
-  "_class": "org.jenkinsci.plugins.workflow.job.WorkflowJob",
-  "builds": [
+    },
     {
       "number": 1,
       "queueId": 2001,
@@ -193,12 +187,7 @@
         }
       ],
       "changeSets": []
-    }
-  ]
-}
-{
-  "_class": "hudson.model.FreeStyleProject",
-  "allBuilds": [
+    },
     {
       "number": 12,
       "queueId": 3012,
