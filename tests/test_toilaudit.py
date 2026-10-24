@@ -727,6 +727,50 @@ def test_jenkins_same_commit_on_another_branch_is_not_a_retry(tmp_path):
     assert [r.run_attempt for r in load_jenkins_runs(p)] == [1, 1]
 
 
+def test_jenkins_timer_rebuild_and_branchless_build_are_not_retries(tmp_path):
+    """A nightly timer rebuilding an unchanged commit is the schedule, and a
+    revision with no branch cannot say what the build was for. Neither is
+    someone pressing re-run; a person's second build of the commit still is."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    timer = "hudson.triggers.TimerTrigger$TimerTriggerCause"
+    user = "hudson.model.Cause$UserIdCause"
+
+    def build(n, job, cause, branches):
+        revision = {"SHA1": "abc", "branch": branches}
+        return {
+            "number": n,
+            "queueId": 900 + n,
+            "result": "FAILURE",
+            "timestamp": 1780000000000 + n * 86400000,
+            "duration": 1000,
+            "url": f"https://ci/job/{job}/{n}/",
+            "actions": [
+                {"causes": [{"_class": cause}]},
+                {"lastBuiltRevision": revision},
+            ],
+        }
+
+    main = [{"name": "origin/main"}]
+    builds = [
+        build(1, "nightly", timer, main),
+        build(2, "nightly", timer, main),
+        build(3, "detached", user, []),
+        build(4, "detached", user, []),
+        build(5, "app", timer, main),
+        build(6, "app", user, main),
+    ]
+    p = tmp_path / "builds.json"
+    p.write_text(json.dumps({"allBuilds": builds}))
+    attempts = {r.run_id: r.run_attempt for r in load_jenkins_runs(p)}
+    assert [attempts[900 + n] for n in range(1, 7)] == [1, 1, 1, 1, 1, 1]
+    # Two person-started builds of one commit and branch stay a retry.
+    builds.append(build(7, "app", user, main))
+    p.write_text(json.dumps({"allBuilds": builds}))
+    attempts = {r.run_id: r.run_attempt for r in load_jenkins_runs(p)}
+    assert (attempts[906], attempts[907]) == (1, 2)
+
+
 def test_jenkins_concatenated_job_documents_are_one_export(tmp_path):
     """`>>` appends each job's document to one file; mixing `allBuilds` and
     `builds` across documents must still read every build."""

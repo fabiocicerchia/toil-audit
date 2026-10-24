@@ -427,8 +427,9 @@ def load_jenkins_runs(path: str | Path) -> list[Run]:
     **Attempts are derived, not read**, as for GitLab: Replay, Rebuild and a
     second "Build Now" all produce a new build number. Builds are grouped by
     (job, sha, branch) in start order, so the second build of one commit in one
-    job is attempt 2. A build with no git revision is never grouped — there is
-    nothing to say it retried anything.
+    job is attempt 2. A build without a git revision and branch is never
+    grouped — there is nothing to say it retried anything — and neither is a
+    timer-started one, which rebuilds an unchanged commit by design.
 
     Queue time comes from the Metrics plugin's `queuingDurationMillis`; without
     it queue time is zero rather than invented.
@@ -442,9 +443,14 @@ def load_jenkins_runs(path: str | Path) -> list[Run]:
     runs = []
     for obj in ordered:
         sha, branch = _jenkins_revision(obj)
-        job = tuple(_jenkins_job_path(obj))
+        job = _jenkins_job_path(obj)
+        # A timer rebuilds whatever is checked out: last night's commit built
+        # again tonight is the schedule, not someone pressing re-run.
+        retryable = sha and branch and _jenkins_event(obj, job)[0] != "schedule"
         key = (
-            (job, sha, branch) if sha else (job, obj.get("number"), obj.get("queueId"))
+            (tuple(job), sha, branch)
+            if retryable
+            else (tuple(job), obj.get("number"), obj.get("queueId"))
         )
         attempts[key] = attempts.get(key, 0) + 1
         runs.append(_to_jenkins_run(obj, attempts[key]))

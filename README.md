@@ -78,7 +78,8 @@ figures.
 and a second "Build Now" each make a new build — so attempts are derived the
 same way, by grouping builds on (job, sha, branch) in start order. The sha and
 branch come from the git plugin; a build without them is never counted as a
-retry. Each branch job of a multibranch pipeline is folded into its pipeline,
+retry, and neither is a timer-started build, which rebuilds an unchanged commit
+by design. Each branch job of a multibranch pipeline is folded into its pipeline,
 the way one GitHub workflow runs on many branches.
 
 Org mode aggregates by workflow *name*, so identically named workflows

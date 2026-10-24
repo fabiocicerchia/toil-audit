@@ -107,7 +107,8 @@ field becomes:
   push by `dependabot[bot]` is a bot's and a person's push is a person's.
 - `lastBuiltRevision` and `remoteUrls`, from the git plugin, give the sha, the
   branch and the repository. Without them the job's folder stands in for the
-  repository and the build is never counted as a retry.
+  repository and the build is never counted as a retry. A timer-started build
+  is not one either: a nightly build of an unchanged commit is the schedule.
 - `queuingDurationMillis` comes from the Metrics plugin. Without it, queue time
   is zero rather than invented.
 - `queueId` is the run id, because build numbers repeat across jobs; name log
