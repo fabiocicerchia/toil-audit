@@ -96,7 +96,10 @@ def _fanout_followers(runs: list[Run]) -> set[tuple[str, str]]:
     by_title: dict[str, list[Run]] = {}
     seen: set[tuple[str, str]] = set()
     for run in runs:
-        if run.conclusion != "failure" or not run.title or run.commit in seen:
+        # No sha, no commit: nothing to say two repos received the same fix.
+        if run.conclusion != "failure" or not run.title or not run.head_sha:
+            continue
+        if run.commit in seen:
             continue
         seen.add(run.commit)
         by_title.setdefault(run.title, []).append(run)

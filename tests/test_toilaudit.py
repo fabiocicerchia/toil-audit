@@ -771,3 +771,66 @@ def test_failures_without_a_sha_are_not_correlated(tmp_path):
     assert "FLAKY_RECOVERY" not in {s.kind for s in signals}
     failed = [s for s in signals if s.kind == "FAILED_RUN"]
     assert len(failed) == 2 and all(s.engineer_minutes > 0 for s in failed)
+
+
+def test_jenkins_two_checkouts_of_different_commits_are_no_git_data(tmp_path):
+    """A shared library's BuildData can come first; with two revisions the
+    export cannot say which is the build's own, so neither is used."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    def checkout(sha, remote):
+        return {
+            "lastBuiltRevision": {"SHA1": sha, "branch": [{"name": "origin/main"}]},
+            "remoteUrls": [remote],
+        }
+
+    def build(n, actions):
+        return {
+            "number": n,
+            "queueId": 500 + n,
+            "result": "SUCCESS",
+            "timestamp": 1780000000000 + n,
+            "duration": 1000,
+            "url": f"https://ci/job/team/job/app/{n}/",
+            "actions": actions,
+        }
+
+    lib = checkout("111", "https://github.com/acme/pipeline-lib.git")
+    builds = [
+        build(1, [lib, checkout("aaa", "https://github.com/acme/app.git")]),
+        build(2, [lib, checkout("bbb", "https://github.com/acme/app.git")]),
+        # The same checkout recorded twice is still one checkout.
+        build(3, [checkout("ccc", "https://github.com/acme/app.git")] * 2),
+    ]
+    p = tmp_path / "builds.json"
+    p.write_text(json.dumps({"allBuilds": builds}))
+    first, second, third = load_jenkins_runs(p)
+    assert (first.head_sha, first.repo) == ("", "team")
+    assert second.run_attempt == 1  # not a retry of #1 through the library sha
+    assert (third.head_sha, third.repo) == ("ccc", "acme/app")
+
+
+def test_failures_without_a_sha_are_never_fanout_copies(tmp_path):
+    """Same title in three repos within minutes, but no sha: no commit says a
+    fix was copied, so none is reported as one."""
+    from toilaudit.ingest import load_jenkins_runs
+    from toilaudit.signals import detect_signals
+
+    def build(n, folder):
+        return {
+            "number": n,
+            "queueId": 600 + n,
+            "result": "FAILURE",
+            "timestamp": 1780000000000 + n * 60000,
+            "duration": 1000,
+            "url": f"https://ci/job/{folder}/job/nightly/{n}/",
+            "changeSets": [{"items": [{"msg": "Bump the base image"}]}],
+        }
+
+    p = tmp_path / "builds.json"
+    p.write_text(
+        json.dumps({"allBuilds": [build(1, "a"), build(2, "b"), build(3, "c")]})
+    )
+    failed = [s for s in detect_signals(load_jenkins_runs(p)) if s.kind == "FAILED_RUN"]
+    assert len(failed) == 3
+    assert not any("same fix pushed to several repos" in s.detail for s in failed)

@@ -263,9 +263,30 @@ def _git_repo(url: str) -> str:
     return rest if "/" in rest else ""
 
 
+def _jenkins_checkouts(obj: dict) -> list[dict]:
+    """The build's git BuildData, if they all describe one checkout.
+
+    A Pipeline that loads a shared library, or checks out a second repository,
+    records one BuildData per checkout, and the export does not say which is
+    the build's own. Taking the first would pin retries and signals on the
+    library's commit, so more than one distinct revision or remote reads as no
+    git data at all — the same as a freestyle job without the plugin.
+    """
+    actions = [
+        a
+        for a in _jenkins_actions(obj)
+        if a.get("lastBuiltRevision") or a.get("remoteUrls")
+    ]
+    shas = {(a.get("lastBuiltRevision") or {}).get("SHA1") for a in actions} - {None}
+    remotes = {
+        r for a in actions for u in a.get("remoteUrls") or [] if (r := _git_repo(u))
+    }
+    return actions if len(shas) <= 1 and len(remotes) <= 1 else []
+
+
 def _jenkins_revision(obj: dict) -> tuple[str, str]:
     """(sha, branch) from the git plugin's BuildData, or empty strings."""
-    for action in _jenkins_actions(obj):
+    for action in _jenkins_checkouts(obj):
         revision = action.get("lastBuiltRevision") or {}
         if revision.get("SHA1"):
             branches = revision.get("branch") or [{}]
@@ -285,7 +306,7 @@ def _jenkins_repo(obj: dict, job: list[str]) -> str:
     repository. Without the git plugin's data the folder path is the closest
     thing — the job's own name is left to `workflow`.
     """
-    for action in _jenkins_actions(obj):
+    for action in _jenkins_checkouts(obj):
         for url in action.get("remoteUrls") or []:
             if repo := _git_repo(url):
                 return repo
