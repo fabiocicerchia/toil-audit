@@ -82,10 +82,12 @@ def resolve_boundary(spec: str, runs: list[Run]) -> datetime:
     sha = spec.lower()
     if len(sha) < 7 or any(c not in "0123456789abcdef" for c in sha):
         raise ValueError(f"{spec!r} is neither a YYYY-MM-DD date nor a commit sha")
-    matches = [r.created_at for r in runs if r.head_sha.lower().startswith(sha)]
+    matches = [r for r in runs if r.head_sha.lower().startswith(sha)]
     if not matches:
         raise ValueError(f"no run in this export was built from commit {spec}")
-    return min(matches)
+    if len({r.head_sha.lower() for r in matches}) > 1:
+        raise ValueError(f"{spec} matches more than one commit; give more of the sha")
+    return min(r.created_at for r in matches)
 
 
 def compare(

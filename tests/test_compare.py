@@ -196,3 +196,36 @@ def test_the_report_states_what_the_fix_has_netted_so_far(tmp_path, capsys):
     )
     assert cli.main([str(path), "--change", "2026-02-20", "--fix-hours", "1000"]) == 0
     assert "short of its cost so far" in capsys.readouterr().out
+
+
+def test_a_sha_prefix_matching_two_commits_is_refused():
+    runs = [_run("2026-03-02T09:00:00", "abcdef1" + "0" * 33)]
+    runs.append(_run("2026-03-04T09:00:00", "abcdef1" + "f" * 33))
+    with pytest.raises(ValueError, match="more than one commit"):
+        resolve_boundary("abcdef1", runs)
+    assert resolve_boundary("abcdef10", runs) == datetime(2026, 3, 2, 9, tzinfo=UTC)
+
+
+@pytest.mark.parametrize("hours", ["nan", "inf", "-1"])
+def test_fix_hours_that_are_not_a_finite_cost_are_refused(tmp_path, hours):
+    path = _export(tmp_path, {"2026-01": 1})
+    with pytest.raises(SystemExit):
+        cli.main([str(path), "--change", "2026-01-15", "--fix-hours", hours])
+
+
+def test_a_fix_that_cost_nothing_is_not_reported_as_unpaid(tmp_path, capsys):
+    path = _export(
+        tmp_path, {"2026-01": 2, "2026-02": 2, "2026-03": 2, "2026-04": 6, "2026-05": 6}
+    )
+    assert cli.main([str(path), "--change", "2026-03-15", "--fix-hours", "0"]) == 0
+    out = capsys.readouterr().out
+    assert "has not paid for itself" not in out
+    assert "cost nothing" in out
+
+
+def test_a_clean_last_month_is_the_headline_and_in_the_trend(tmp_path, capsys):
+    path = _export(tmp_path, {"2026-01": 4, "2026-02": 4, "2026-03": 0})
+    assert cli.main([str(path)]) == 0
+    out = capsys.readouterr().out
+    assert "in 2026-03** (last full month)" in out
+    assert "- `2026-03` " in out

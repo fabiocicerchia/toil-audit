@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from itertools import pairwise
 
 from .attribute import summarise
-from .compare import Comparison
+from .compare import Comparison, month_series
 from .costing import CostSummary
 from .ingest import Run
 from .signals import Signal
@@ -166,7 +166,7 @@ def _monthly_trend(
     full = {m for m, _ in complete}
     lines = ["", "## Monthly trend", ""]
     for month, eur in by_month.items():
-        bar = "█" * max(1, round(28 * eur / peak))
+        bar = "█" * max(1, round(28 * eur / peak)) if eur else ""
         tail = "" if month in full else "  _(partial month)_"
         lines.append(f"- `{month}` {bar} {_eur(eur)}{tail}")
     return lines
@@ -212,6 +212,11 @@ def _before_after(cmp: Comparison) -> list[str]:
             "",
             "_No ROI: pass `--fix-hours` with the engineer-hours the fix took._",
         ]
+    if cmp.fix_cost_eur == 0:
+        return lines + [
+            "",
+            "The fix cost nothing, so there is nothing for it to repay.",
+        ]
     cost = f"The fix cost {_eur(cmp.fix_cost_eur)}"
     if cmp.payback_months is None:
         return lines + [
@@ -255,7 +260,10 @@ def build_report(
     if repos:
         scope += f" across {len(repos)} repos"
 
-    complete = complete_months(summary.by_month, runs)
+    # Zero-filled, so a month with runs and no toil is in the headline and the
+    # trend as it is in the before/after comparison, not silently skipped.
+    series = month_series(summary.by_month, runs)
+    complete = complete_months(series, runs)
     lines = [
         "# Toil audit",
         "",
@@ -264,7 +272,7 @@ def build_report(
         *_bottom_line(runs, signals, summary, complete, months),
         "",
         *_cost_table(summary),
-        *_monthly_trend(summary.by_month, complete),
+        *_monthly_trend(series, complete),
         *(_before_after(comparison) if comparison else []),
     ]
 

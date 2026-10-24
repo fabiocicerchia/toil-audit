@@ -4,6 +4,7 @@ python -m toilaudit --repo owner/name [--since 2026-07-01]
 
 import argparse
 import json
+import math
 import os
 import sys
 from pathlib import Path
@@ -120,8 +121,8 @@ def main(argv=None) -> int:
         parser.error("give either an export file or --repo, not both")
     if args.fix_hours is not None and not args.change:
         parser.error("--fix-hours prices a change; name it with --change")
-    if args.fix_hours is not None and args.fix_hours < 0:
-        parser.error("--fix-hours cannot be negative")
+    if args.fix_hours is not None and not 0 <= args.fix_hours < math.inf:
+        parser.error("--fix-hours must be a finite, non-negative number")
 
     try:
         if args.repo:
