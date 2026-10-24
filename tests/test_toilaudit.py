@@ -636,12 +636,13 @@ def test_jenkins_timings():
 
 
 def test_jenkins_git_remote_forms():
-    from toilaudit.ingest import _git_repo
+    from toilaudit.ingest import _git_remote, _git_repo
 
     assert _git_repo("https://github.com/acme/widgets.git") == "acme/widgets"
     assert _git_repo("git@github.com:acme/widgets.git") == "acme/widgets"
     assert _git_repo("ssh://git@gitlab.com/group/sub/proj.git") == "group/sub/proj"
     assert _git_repo("widgets") == ""
+    assert _git_remote("ssh://git@GitLab.com:2222/g/p.git") == ("gitlab.com", "g/p")
 
 
 def test_jenkins_runs_flow_through_the_signal_detectors():
@@ -808,6 +809,92 @@ def test_jenkins_two_checkouts_of_different_commits_are_no_git_data(tmp_path):
     assert (first.head_sha, first.repo) == ("", "team")
     assert second.run_attempt == 1  # not a retry of #1 through the library sha
     assert (third.head_sha, third.repo) == ("ccc", "acme/app")
+
+
+def test_jenkins_same_path_on_two_hosts_is_two_checkouts(tmp_path):
+    """`acme/app` on GitLab and on GitHub are different repositories: with only
+    one of them carrying a revision, its sha must not be pinned on the build.
+    The same remote spelled as https and as scp-style is still one checkout."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    def build(n, actions):
+        return {
+            "number": n,
+            "queueId": 700 + n,
+            "result": "SUCCESS",
+            "timestamp": 1780000000000 + n,
+            "duration": 1000,
+            "url": f"https://ci/job/team/job/app/{n}/",
+            "actions": actions,
+        }
+
+    revision = {"SHA1": "aaa", "branch": [{"name": "origin/main"}]}
+    builds = [
+        build(
+            1,
+            [
+                {
+                    "lastBuiltRevision": revision,
+                    "remoteUrls": ["https://gitlab.example/acme/app.git"],
+                },
+                {"remoteUrls": ["https://github.com/acme/app.git"]},
+            ],
+        ),
+        build(
+            2,
+            [
+                {
+                    "lastBuiltRevision": revision,
+                    "remoteUrls": ["https://github.com/acme/app.git"],
+                },
+                {"remoteUrls": ["git@GitHub.com:acme/app"]},
+            ],
+        ),
+    ]
+    p = tmp_path / "builds.json"
+    p.write_text(json.dumps({"allBuilds": builds}))
+    two_hosts, one_host = load_jenkins_runs(p)
+    assert (two_hosts.head_sha, two_hosts.repo) == ("", "team")
+    assert (one_host.head_sha, one_host.repo) == ("aaa", "acme/app")
+
+
+def test_jenkins_push_actor_is_the_change_author(tmp_path):
+    """An SCM-triggered build names no user in its causes. Left empty, a
+    person's fixing push read as a bot's and capped triage at a glance."""
+    from toilaudit.ingest import load_jenkins_runs
+    from toilaudit.signals import GLANCE_MINUTES, detect_signals
+
+    def build(n, sha, result, author):
+        return {
+            "number": n,
+            "queueId": 800 + n,
+            "result": result,
+            "timestamp": 1780000000000 + n * 3600000,
+            "duration": 60000,
+            "url": f"https://ci/job/app/{n}/",
+            "actions": [
+                {"causes": [{"_class": "hudson.triggers.SCMTrigger$SCMTriggerCause"}]},
+                {"lastBuiltRevision": {"SHA1": sha, "branch": [{"name": "main"}]}},
+            ],
+            "changeSets": [{"items": [{"msg": "x", "author": {"fullName": author}}]}],
+        }
+
+    builds = [
+        build(1, "aaa", "FAILURE", "Ada"),
+        build(2, "bbb", "SUCCESS", "Grace"),
+        build(3, "ccc", "FAILURE", "Ada"),
+        build(4, "ddd", "SUCCESS", "dependabot[bot]"),
+    ]
+    p = tmp_path / "builds.json"
+    p.write_text(json.dumps({"allBuilds": builds}))
+    runs = load_jenkins_runs(p)
+    assert [r.actor for r in runs] == ["Ada", "Grace", "Ada", "dependabot[bot]"]
+    fixed_by_grace, fixed_by_bot = (
+        s for s in detect_signals(runs) if s.kind == "FAILED_RUN"
+    )
+    assert fixed_by_grace.engineer_minutes > GLANCE_MINUTES
+    assert fixed_by_bot.engineer_minutes == GLANCE_MINUTES
+    assert "dependabot[bot] pushed over it" in fixed_by_bot.detail
 
 
 def test_failures_without_a_sha_are_never_fanout_copies(tmp_path):

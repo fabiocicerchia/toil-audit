@@ -230,7 +230,7 @@ _JENKINS_CAUSE = (
 JENKINS_TREE = (
     "allBuilds[number,queueId,result,timestamp,duration,url,"
     "actions[causes[_class,userId],lastBuiltRevision[SHA1,branch[name]],"
-    "remoteUrls,queuingDurationMillis],changeSets[items[msg]]]"
+    "remoteUrls,queuingDurationMillis],changeSets[items[msg,author[fullName]]]]"
 )
 
 
@@ -249,18 +249,27 @@ def _jenkins_job_path(obj: dict) -> list[str]:
     return [unquote(parts[i + 1]) for i, p in enumerate(parts[:-1]) if p == "job"]
 
 
-def _git_repo(url: str) -> str:
-    """The path after the host: `https://github.com/acme/widgets.git` or
-    `git@github.com:acme/widgets` -> `acme/widgets`; GitLab subgroups are kept."""
+def _git_remote(url: str) -> tuple[str, str]:
+    """(host, path) of a git remote, or empty strings when it is not one.
+
+    `https://github.com/acme/widgets.git` and `git@github.com:acme/widgets` are
+    both ("github.com", "acme/widgets"); GitLab subgroups are kept.
+    """
     url = url.strip()
     if "://" in url:
-        rest = url.split("://", 1)[1].partition("/")[2]
+        host, _, rest = url.split("://", 1)[1].partition("/")
     elif "@" in url.split(":", 1)[0] and ":" in url:  # scp-style git@host:path
-        rest = url.split(":", 1)[1]
+        host, rest = url.split(":", 1)
     else:
-        return ""
+        return "", ""
+    host = host.rpartition("@")[2].partition(":")[0].lower()
     rest = rest.strip("/").removesuffix(".git")
-    return rest if "/" in rest else ""
+    return (host, rest) if "/" in rest else ("", "")
+
+
+def _git_repo(url: str) -> str:
+    """The remote's path, `acme/widgets`: the repo identity `Run.repo` carries."""
+    return _git_remote(url)[1]
 
 
 def _jenkins_checkouts(obj: dict) -> list[dict]:
@@ -270,7 +279,8 @@ def _jenkins_checkouts(obj: dict) -> list[dict]:
     records one BuildData per checkout, and the export does not say which is
     the build's own. Taking the first would pin retries and signals on the
     library's commit, so more than one distinct revision or remote reads as no
-    git data at all — the same as a freestyle job without the plugin.
+    git data at all — the same as a freestyle job without the plugin. Remotes
+    are compared with their host: `acme/app` on two servers is two checkouts.
     """
     actions = [
         a
@@ -279,7 +289,10 @@ def _jenkins_checkouts(obj: dict) -> list[dict]:
     ]
     shas = {(a.get("lastBuiltRevision") or {}).get("SHA1") for a in actions} - {None}
     remotes = {
-        r for a in actions for u in a.get("remoteUrls") or [] if (r := _git_repo(u))
+        r
+        for a in actions
+        for u in a.get("remoteUrls") or []
+        if (r := _git_remote(u))[1]
     }
     return actions if len(shas) <= 1 and len(remotes) <= 1 else []
 
@@ -346,12 +359,8 @@ def _jenkins_workflow(job: list[str], branch: str) -> str:
     return job[-1] if job else "jenkins"
 
 
-def _to_jenkins_run(obj: dict, attempt: int) -> Run:
-    job = _jenkins_job_path(obj)
-    sha, branch = _jenkins_revision(obj)
-    event, actor = _jenkins_event(obj, job)
-    started = datetime.fromtimestamp(obj["timestamp"] / 1000, tz=timezone.utc)
-    queued_ms = next(
+def _jenkins_queue_ms(obj: dict) -> float:
+    return next(
         (
             a["queuingDurationMillis"]
             for a in _jenkins_actions(obj)
@@ -359,11 +368,36 @@ def _to_jenkins_run(obj: dict, attempt: int) -> Run:
         ),
         0,
     )
-    messages = [
-        item.get("msg", "")
+
+
+def _jenkins_change(obj: dict) -> tuple[str, str]:
+    """(subject, author) of the build's first change, or empty strings.
+
+    An SCM-triggered build has no UserIdCause, so its causes name nobody. The
+    change's author is who pushed it, as GitHub's triggering_actor is; left
+    empty, every push would read as a bot's and cap each failure's triage at
+    a glance.
+    """
+    items = [
+        item
         for change in obj.get("changeSets") or []
         for item in change.get("items") or []
+        if isinstance(item, dict)
     ]
+    subject = items[0].get("msg", "").split("\n")[0] if items else ""
+    author = next(
+        (n for item in items if (n := (item.get("author") or {}).get("fullName"))),
+        "",
+    )
+    return subject, author
+
+
+def _to_jenkins_run(obj: dict, attempt: int) -> Run:
+    job = _jenkins_job_path(obj)
+    sha, branch = _jenkins_revision(obj)
+    event, actor = _jenkins_event(obj, job)
+    title, author = _jenkins_change(obj)
+    started = datetime.fromtimestamp(obj["timestamp"] / 1000, tz=timezone.utc)
     return Run(
         # queueId is unique across the controller; `number` is only unique
         # within one job, and two jobs' build #12 would otherwise collide.
@@ -373,13 +407,13 @@ def _to_jenkins_run(obj: dict, attempt: int) -> Run:
         conclusion=_JENKINS_RESULT[obj["result"]],
         run_attempt=attempt,
         head_sha=sha,
-        created_at=started - timedelta(milliseconds=queued_ms),
+        created_at=started - timedelta(milliseconds=_jenkins_queue_ms(obj)),
         started_at=started,
         updated_at=started + timedelta(milliseconds=obj.get("duration") or 0),
         repo=_jenkins_repo(obj, job),
         branch=branch,
-        actor=actor,
-        title=(messages[0] if messages else "").split("\n")[0],
+        actor=actor or author,
+        title=title,
     )
 
 

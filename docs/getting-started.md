@@ -85,7 +85,7 @@ One job:
 `curl -u` sends the token in the clear unless `JENKINS_URL` is `https://`.
 
 ```sh
-TREE='allBuilds[number,queueId,result,timestamp,duration,url,actions[causes[_class,userId],lastBuiltRevision[SHA1,branch[name]],remoteUrls,queuingDurationMillis],changeSets[items[msg]]]'
+TREE='allBuilds[number,queueId,result,timestamp,duration,url,actions[causes[_class,userId],lastBuiltRevision[SHA1,branch[name]],remoteUrls,queuingDurationMillis],changeSets[items[msg,author[fullName]]]]'
 curl -fsS -u "$JENKINS_USER:$JENKINS_TOKEN" -G \
   --data-urlencode "tree=$TREE" "$JENKINS_URL/job/widgets/job/main/api/json" > builds.json
 python -m toilaudit builds.json --provider jenkins
@@ -102,7 +102,9 @@ field becomes:
   (cancelled), `NOT_BUILT` (skipped). A build still running is left out.
 - causes — a user-started build (including Replay and Rebuild) is a manual
   dispatch, a timer is a schedule, an SCM or branch event is a push, and a
-  multibranch job named `PR-<n>` is a pull request.
+  multibranch job named `PR-<n>` is a pull request. The user who started a
+  build is its actor; for any other build it is the first change's author, so a
+  push by `dependabot[bot]` is a bot's and a person's push is a person's.
 - `lastBuiltRevision` and `remoteUrls`, from the git plugin, give the sha, the
   branch and the repository. Without them the job's folder stands in for the
   repository and the build is never counted as a retry.
