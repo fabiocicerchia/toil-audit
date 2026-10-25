@@ -82,11 +82,13 @@ dependency's own failing test is not your flaky test.
 Jenkins returns almost nothing from `api/json` unless asked, so name the fields.
 One job:
 
-`curl -u` sends the token in the clear unless `JENKINS_URL` is `https://`.
+The credentials go to curl on stdin (`-K -`), not as `-u`, which would put the
+token in the process list; and they travel in the clear unless `JENKINS_URL`
+is `https://`.
 
 ```sh
 TREE='allBuilds[number,queueId,result,timestamp,duration,url,actions[causes[_class,userId],lastBuiltRevision[SHA1,branch[name]],remoteUrls,queuingDurationMillis],changeSets[items[msg,author[fullName]]]]'
-curl -fsS -u "$JENKINS_USER:$JENKINS_TOKEN" -G \
+printf 'user = "%s:%s"\n' "$JENKINS_USER" "$JENKINS_TOKEN" | curl -fsS -K - -G \
   --data-urlencode "tree=$TREE" "$JENKINS_URL/job/widgets/job/main/api/json" > builds.json
 python -m toilaudit builds.json --provider jenkins
 ```
