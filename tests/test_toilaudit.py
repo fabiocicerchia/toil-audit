@@ -728,7 +728,8 @@ def test_jenkins_same_commit_on_another_branch_is_not_a_retry(tmp_path):
 def test_jenkins_timer_rebuild_and_branchless_build_are_not_retries(tmp_path):
     """A nightly timer rebuilding an unchanged commit is the schedule, and a
     revision with no branch cannot say what the build was for. Neither is
-    someone pressing re-run; a person's second build of the commit still is."""
+    someone pressing re-run; a person rebuilding the commit, after a timer
+    build or after their own, still is."""
     from toilaudit.ingest import load_jenkins_runs
 
     timer = "hudson.triggers.TimerTrigger$TimerTriggerCause"
@@ -758,11 +759,16 @@ def test_jenkins_timer_rebuild_and_branchless_build_are_not_retries(tmp_path):
     ]
     p = _jenkins_export(tmp_path, builds)
     attempts = {r.run_id: r.run_attempt for r in load_jenkins_runs(p)}
-    assert [attempts[900 + n] for n in range(1, 7)] == [1, 1, 1, 1, 1, 1]
-    # Two person-started builds of one commit and branch stay a retry.
+    # #6 is a person rebuilding the commit the red nightly #5 built: a re-run,
+    # as re-running a failed scheduled run is attempt 2 on GitHub.
+    assert [attempts[900 + n] for n in range(1, 7)] == [1, 1, 1, 1, 1, 2]
     p = _jenkins_export(tmp_path, [*builds, build(7, "app", user, main)])
     attempts = {r.run_id: r.run_attempt for r in load_jenkins_runs(p)}
-    assert (attempts[906], attempts[907]) == (1, 2)
+    assert (attempts[906], attempts[907]) == (2, 3)
+    # The next nightly starts the count again.
+    p = _jenkins_export(tmp_path, [*builds, build(8, "app", timer, main)])
+    attempts = {r.run_id: r.run_attempt for r in load_jenkins_runs(p)}
+    assert attempts[908] == 1
 
 
 def test_jenkins_concatenated_job_documents_are_one_export(tmp_path):

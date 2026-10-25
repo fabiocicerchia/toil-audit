@@ -420,12 +420,24 @@ def _to_jenkins_run(obj: dict, attempt: int) -> Run:
 def _jenkins_attempt_key(obj: dict) -> tuple:
     """What a retry of this build shares with it, or a key only it has."""
     sha, branch = _jenkins_revision(obj)
-    job = _jenkins_job_path(obj)
-    # A timer rebuilds whatever is checked out: last night's commit built
-    # again tonight is the schedule, not someone pressing re-run.
-    if sha and branch and _jenkins_event(obj, job)[0] != "schedule":
-        return tuple(job), sha, branch
-    return tuple(job), obj.get("number"), obj.get("queueId")
+    job = tuple(_jenkins_job_path(obj))
+    if sha and branch:
+        return job, sha, branch
+    return job, obj.get("number"), obj.get("queueId")
+
+
+def _jenkins_attempt(obj: dict, attempts: dict[tuple, int]) -> int:
+    """This build's attempt number, counting it into `attempts`.
+
+    A timer rebuilds whatever is checked out: last night's commit built again
+    tonight is the schedule, not someone pressing re-run. So a timer-started
+    build is attempt 1 and restarts the count, and a person rebuilding the
+    commit after it, as they would a red nightly, is that build's attempt 2.
+    """
+    key = _jenkins_attempt_key(obj)
+    scheduled = _jenkins_event(obj, list(key[0]))[0] == "schedule"
+    attempts[key] = 1 if scheduled else attempts.get(key, 0) + 1
+    return attempts[key]
 
 
 def load_jenkins_runs(path: str | Path) -> list[Run]:
@@ -439,8 +451,9 @@ def load_jenkins_runs(path: str | Path) -> list[Run]:
     second "Build Now" all produce a new build number. Builds are grouped by
     (job, sha, branch) in start order, so the second build of one commit in one
     job is attempt 2. A build without a git revision and branch is never
-    grouped — there is nothing to say it retried anything — and neither is a
-    timer-started one, which rebuilds an unchanged commit by design.
+    grouped — there is nothing to say it retried anything. A timer-started
+    build is never a retry either, since it rebuilds an unchanged commit by
+    design, but a person's rebuild after it is.
 
     Queue time comes from the Metrics plugin's `queuingDurationMillis`; without
     it queue time is zero rather than invented.
@@ -453,9 +466,7 @@ def load_jenkins_runs(path: str | Path) -> list[Run]:
     attempts: dict[tuple, int] = {}
     runs = []
     for obj in ordered:
-        key = _jenkins_attempt_key(obj)
-        attempts[key] = attempts.get(key, 0) + 1
-        runs.append(_to_jenkins_run(obj, attempts[key]))
+        runs.append(_to_jenkins_run(obj, _jenkins_attempt(obj, attempts)))
     runs.sort(key=lambda r: r.created_at)
     return runs
 
