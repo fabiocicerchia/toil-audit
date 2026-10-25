@@ -111,7 +111,7 @@ field becomes:
   branch and the repository. Without them the job's folder stands in for the
   repository and the build is never counted as a retry. A timer-started build
   is not one either: a nightly build of an unchanged commit is the schedule.
-  A person rebuilding the commit after it still is.
+  A person rebuilding the commit after a timer build is a retry, though.
 - `queuingDurationMillis` comes from the Metrics plugin. Without it, queue time
   is zero rather than invented.
 - `queueId` is the run id, because build numbers repeat across jobs; name log

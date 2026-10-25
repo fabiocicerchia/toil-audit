@@ -435,7 +435,7 @@ def _jenkins_attempt(obj: dict, attempts: dict[tuple, int]) -> int:
     commit after it, as they would a red nightly, is that build's attempt 2.
     """
     key = _jenkins_attempt_key(obj)
-    scheduled = _jenkins_event(obj, list(key[0]))[0] == "schedule"
+    scheduled = _jenkins_event(obj, _jenkins_job_path(obj))[0] == "schedule"
     attempts[key] = 1 if scheduled else attempts.get(key, 0) + 1
     return attempts[key]
 
