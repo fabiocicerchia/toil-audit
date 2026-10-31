@@ -62,6 +62,9 @@ python -m toilaudit data/sample_runs.json
 # GitLab CI:
 glab api 'projects/:id/pipelines?per_page=100' --paginate > pipelines.json
 python -m toilaudit pipelines.json --provider gitlab
+
+# Jenkins (see docs/getting-started.md for the tree= query):
+python -m toilaudit builds.json --provider jenkins
 ```
 
 **GitLab note.** GitLab has no run-attempt counter — pressing "retry" creates a
@@ -70,6 +73,14 @@ pipelines on (project, sha, ref) in creation order. The list endpoint also
 omits `started_at`/`finished_at`; without them queue time reads as zero rather
 than being invented. Export from `/pipelines/:id` if you want real queue
 figures.
+
+**Jenkins note.** Jenkins has no run-attempt counter either — Replay, Rebuild
+and a second "Build Now" each make a new build — so attempts are derived the
+same way, by grouping builds on (job, sha, branch) in start order. The sha and
+branch come from the git plugin; a build without them is never counted as a
+retry, and neither is a timer-started build, which rebuilds an unchanged commit
+by design. Each branch job of a multibranch pipeline is folded into its pipeline,
+the way one GitHub workflow runs on many branches.
 
 Org mode aggregates by workflow *name*, so identically named workflows
 (`CI`, `release`) merge across repos in the costliest-workflows table.
