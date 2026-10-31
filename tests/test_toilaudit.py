@@ -580,3 +580,345 @@ def test_gitlab_runs_flow_through_the_signal_detectors(tmp_path):
     signals = detect_signals(load_gitlab_runs(_gitlab_file(tmp_path)))
     kinds = {s.kind for s in signals}
     assert "RERUN" in kinds  # the derived attempt 2 was picked up
+
+
+# --- Jenkins ingestion -----------------------------------------------------
+
+JENKINS_SAMPLE = Path(__file__).resolve().parent.parent / "data" / "sample_jenkins.json"
+
+
+def _jenkins_runs():
+    from toilaudit.ingest import load_jenkins_runs
+
+    return {r.run_id: r for r in load_jenkins_runs(JENKINS_SAMPLE)}
+
+
+def _jenkins_build(n, url, **fields):
+    """One build as `api/json` returns it: green and a second long unless
+    `fields` say otherwise, started `n` milliseconds after a fixed epoch."""
+    return {
+        "number": n,
+        "result": "SUCCESS",
+        "timestamp": 1780000000000 + n,
+        "duration": 1000,
+        "url": url,
+        **fields,
+    }
+
+
+def _jenkins_export(tmp_path, builds, key="allBuilds"):
+    p = tmp_path / "builds.json"
+    p.write_text(json.dumps({key: builds}))
+    return p
+
+
+def _scm_revision(sha, branch):
+    return {"lastBuiltRevision": {"SHA1": sha, "branch": [{"name": branch}]}}
+
+
+def test_jenkins_derives_attempts_from_builds_of_one_commit():
+    runs = _jenkins_runs()
+    assert runs[1041].run_attempt == 1
+    assert runs[1042].run_attempt == 2  # replayed on the same sha and branch
+    assert runs[1043].run_attempt == 1  # next commit, back to 1
+    assert 1044 not in runs  # still building: null result is not terminal
+    # No git revision: nothing says #12 retried #11, so neither is a retry.
+    assert runs[3011].run_attempt == runs[3012].run_attempt == 1
+
+
+def test_jenkins_vocabulary_maps_onto_the_detectors():
+    runs = _jenkins_runs()
+    assert runs[1041].conclusion == "failure"
+    assert runs[1043].conclusion == "failure"  # UNSTABLE: tests failed
+    assert runs[3011].conclusion == "cancelled"  # ABORTED
+    assert runs[1041].event == "push"
+    assert runs[1042].event == "workflow_dispatch"  # Replay, started by a user
+    assert runs[1042].actor == "fabio" and runs[1042].is_human
+    assert runs[2001].event == "pull_request"  # multibranch PR-<n> job
+    assert runs[3011].event == "schedule"
+
+
+def test_jenkins_repo_and_workflow_derivation():
+    runs = _jenkins_runs()
+    # The git remote names the repository, whichever job built it.
+    assert runs[1041].repo == runs[2001].repo == "acme/widgets"
+    # Every branch job of a multibranch pipeline is one workflow.
+    assert runs[1041].workflow == runs[2001].workflow == "widgets"
+    assert runs[1041].branch == "main" and runs[2001].branch == "PR-7"
+    assert runs[1041].head_sha == "abc"
+    # A plain job without git data: its folder stands in for the repository.
+    assert runs[3011].repo == "ops" and runs[3011].workflow == "nightly-backup"
+    assert runs[1043].title == "Bump the parser"
+
+
+def test_jenkins_timings():
+    runs = _jenkins_runs()
+    assert runs[1041].queue_seconds == 30  # Metrics plugin's queuingDurationMillis
+    assert runs[1041].duration_seconds == 270
+    assert runs[1043].queue_seconds == 0  # absent: zero, not invented
+
+
+def test_jenkins_git_remote_forms():
+    from toilaudit.ingest import _git_remote, _git_repo
+
+    assert _git_repo("https://github.com/acme/widgets.git") == "acme/widgets"
+    assert _git_repo("git@github.com:acme/widgets.git") == "acme/widgets"
+    assert _git_repo("ssh://git@gitlab.com/group/sub/proj.git") == "group/sub/proj"
+    assert _git_repo("widgets") == ""
+    assert _git_remote("ssh://git@GitLab.com:2222/g/p.git") == ("gitlab.com", "g/p")
+
+
+def test_jenkins_runs_flow_through_the_signal_detectors():
+    from toilaudit.ingest import LOADERS
+    from toilaudit.signals import detect_signals
+
+    kinds = {s.kind for s in detect_signals(LOADERS["jenkins"](JENKINS_SAMPLE))}
+    assert {"RERUN", "FLAKY_RECOVERY", "MANUAL_DISPATCH"} <= kinds
+
+
+def test_jenkins_builds_key_is_accepted_as_well_as_allbuilds(tmp_path):
+    from toilaudit.ingest import load_jenkins_runs
+
+    p = _jenkins_export(
+        tmp_path, [_jenkins_build(3, "https://ci/job/app/3/")], key="builds"
+    )
+    [run] = load_jenkins_runs(p)
+    assert run.run_id == 3  # no queueId: the build number
+    assert run.workflow == "app"
+
+
+def test_jenkins_slashed_branch_and_spaced_folder_are_decoded(tmp_path):
+    """Multibranch names a `feature/x` job `feature%2Fx`, and the URL encodes
+    that again; a folder with a space is `%20`. Undecoded, the branch job
+    became its own workflow and the folder kept its escapes."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    builds = [
+        _jenkins_build(
+            1,
+            "https://ci/job/acme/job/widgets/job/feature%252Fx/1/",
+            queueId=101,
+            actions=[_scm_revision("abc", "feature/x")],
+        ),
+        _jenkins_build(2, "https://ci/job/My%20Folder/job/nightly/2/", queueId=102),
+    ]
+    multibranch, freestyle = load_jenkins_runs(_jenkins_export(tmp_path, builds))
+    assert (multibranch.workflow, multibranch.branch) == ("widgets", "feature/x")
+    assert freestyle.repo == "My Folder"
+
+
+def test_jenkins_same_commit_on_another_branch_is_not_a_retry(tmp_path):
+    """One job building two branches at one sha (a release cut from main) ran
+    twice for two reasons, neither of them a retry."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    builds = [
+        _jenkins_build(
+            n,
+            f"https://ci/job/app/{n}/",
+            queueId=200 + n,
+            actions=[_scm_revision("abc", f"origin/{branch}")],
+        )
+        for n, branch in ((1, "main"), (2, "release-1.0"))
+    ]
+    p = _jenkins_export(tmp_path, builds)
+    assert [r.run_attempt for r in load_jenkins_runs(p)] == [1, 1]
+
+
+def test_jenkins_timer_rebuild_and_branchless_build_are_not_retries(tmp_path):
+    """A nightly timer rebuilding an unchanged commit is the schedule, and a
+    revision with no branch cannot say what the build was for. Neither is
+    someone pressing re-run; a person rebuilding the commit, after a timer
+    build or after their own, still is."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    timer = "hudson.triggers.TimerTrigger$TimerTriggerCause"
+    user = "hudson.model.Cause$UserIdCause"
+
+    def build(n, job, cause, branches):
+        return _jenkins_build(
+            n,
+            f"https://ci/job/{job}/{n}/",
+            queueId=900 + n,
+            result="FAILURE",
+            timestamp=1780000000000 + n * 86400000,
+            actions=[
+                {"causes": [{"_class": cause}]},
+                {"lastBuiltRevision": {"SHA1": "abc", "branch": branches}},
+            ],
+        )
+
+    main = [{"name": "origin/main"}]
+    builds = [
+        build(1, "nightly", timer, main),
+        build(2, "nightly", timer, main),
+        build(3, "detached", user, []),
+        build(4, "detached", user, []),
+        build(5, "app", timer, main),
+        build(6, "app", user, main),
+    ]
+    p = _jenkins_export(tmp_path, builds)
+    attempts = {r.run_id: r.run_attempt for r in load_jenkins_runs(p)}
+    # #6 is a person rebuilding the commit the red nightly #5 built: a re-run,
+    # as re-running a failed scheduled run is attempt 2 on GitHub.
+    assert [attempts[900 + n] for n in range(1, 7)] == [1, 1, 1, 1, 1, 2]
+    p = _jenkins_export(tmp_path, [*builds, build(7, "app", user, main)])
+    attempts = {r.run_id: r.run_attempt for r in load_jenkins_runs(p)}
+    assert (attempts[906], attempts[907]) == (2, 3)
+    # The next nightly starts the count again.
+    p = _jenkins_export(tmp_path, [*builds, build(8, "app", timer, main)])
+    attempts = {r.run_id: r.run_attempt for r in load_jenkins_runs(p)}
+    assert attempts[908] == 1
+
+
+def test_jenkins_concatenated_job_documents_are_one_export(tmp_path):
+    """`>>` appends each job's document to one file; mixing `allBuilds` and
+    `builds` across documents must still read every build."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    def doc(key, n, job):
+        build = _jenkins_build(n, f"https://ci/job/{job}/{n}/", queueId=300 + n)
+        return json.dumps({key: [build]}, indent=2)
+
+    p = tmp_path / "builds.json"
+    p.write_text(doc("allBuilds", 1, "app") + "\n" + doc("builds", 2, "lib") + "\n")
+    assert [r.workflow for r in load_jenkins_runs(p)] == ["app", "lib"]
+
+
+def test_failures_without_a_sha_are_not_correlated(tmp_path):
+    """A Jenkins job with no git data has an empty sha on every build: a later
+    green build is not a recovery of an earlier red one, and a second red build
+    is not the same broken commit already triaged."""
+    from toilaudit.ingest import load_jenkins_runs
+    from toilaudit.signals import detect_signals
+
+    builds = [
+        _jenkins_build(
+            n,
+            f"https://ci/job/ops/job/backup/{n}/",
+            queueId=400 + n,
+            result=result,
+            timestamp=1780000000000 + n * 60000,
+        )
+        for n, result in ((1, "FAILURE"), (2, "FAILURE"), (3, "SUCCESS"))
+    ]
+    signals = detect_signals(load_jenkins_runs(_jenkins_export(tmp_path, builds)))
+    assert "FLAKY_RECOVERY" not in {s.kind for s in signals}
+    failed = [s for s in signals if s.kind == "FAILED_RUN"]
+    assert len(failed) == 2 and all(s.engineer_minutes > 0 for s in failed)
+
+
+def test_jenkins_two_checkouts_of_different_commits_are_no_git_data(tmp_path):
+    """A shared library's BuildData can come first; with two revisions the
+    export cannot say which is the build's own, so neither is used."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    def checkout(sha, remote):
+        return {**_scm_revision(sha, "origin/main"), "remoteUrls": [remote]}
+
+    def build(n, actions):
+        url = f"https://ci/job/team/job/app/{n}/"
+        return _jenkins_build(n, url, queueId=500 + n, actions=actions)
+
+    lib = checkout("111", "https://github.com/acme/pipeline-lib.git")
+    builds = [
+        build(1, [lib, checkout("aaa", "https://github.com/acme/app.git")]),
+        build(2, [lib, checkout("bbb", "https://github.com/acme/app.git")]),
+        # The same checkout recorded twice is still one checkout.
+        build(3, [checkout("ccc", "https://github.com/acme/app.git")] * 2),
+    ]
+    first, second, third = load_jenkins_runs(_jenkins_export(tmp_path, builds))
+    assert (first.head_sha, first.repo) == ("", "team")
+    assert second.run_attempt == 1  # not a retry of #1 through the library sha
+    assert (third.head_sha, third.repo) == ("ccc", "acme/app")
+
+
+def test_jenkins_same_path_on_two_hosts_is_two_checkouts(tmp_path):
+    """`acme/app` on GitLab and on GitHub are different repositories: with only
+    one of them carrying a revision, its sha must not be pinned on the build.
+    The same remote spelled as https and as scp-style is still one checkout."""
+    from toilaudit.ingest import load_jenkins_runs
+
+    def build(n, revision_remote, other_remote):
+        return _jenkins_build(
+            n,
+            f"https://ci/job/team/job/app/{n}/",
+            queueId=700 + n,
+            actions=[
+                {
+                    **_scm_revision("aaa", "origin/main"),
+                    "remoteUrls": [revision_remote],
+                },
+                {"remoteUrls": [other_remote]},
+            ],
+        )
+
+    builds = [
+        build(
+            1, "https://gitlab.example/acme/app.git", "https://github.com/acme/app.git"
+        ),
+        build(2, "https://github.com/acme/app.git", "git@GitHub.com:acme/app"),
+    ]
+    two_hosts, one_host = load_jenkins_runs(_jenkins_export(tmp_path, builds))
+    assert (two_hosts.head_sha, two_hosts.repo) == ("", "team")
+    assert (one_host.head_sha, one_host.repo) == ("aaa", "acme/app")
+
+
+def test_jenkins_push_actor_is_the_change_author(tmp_path):
+    """An SCM-triggered build names no user in its causes. Left empty, a
+    person's fixing push read as a bot's and capped triage at a glance."""
+    from toilaudit.ingest import load_jenkins_runs
+    from toilaudit.signals import GLANCE_MINUTES, detect_signals
+
+    def build(n, sha, result, author):
+        return _jenkins_build(
+            n,
+            f"https://ci/job/app/{n}/",
+            queueId=800 + n,
+            result=result,
+            timestamp=1780000000000 + n * 3600000,
+            duration=60000,
+            actions=[
+                {"causes": [{"_class": "hudson.triggers.SCMTrigger$SCMTriggerCause"}]},
+                _scm_revision(sha, "main"),
+            ],
+            changeSets=[{"items": [{"msg": "x", "author": {"fullName": author}}]}],
+        )
+
+    builds = [
+        build(1, "aaa", "FAILURE", "Ada"),
+        build(2, "bbb", "SUCCESS", "Grace"),
+        build(3, "ccc", "FAILURE", "Ada"),
+        build(4, "ddd", "SUCCESS", "dependabot[bot]"),
+    ]
+    runs = load_jenkins_runs(_jenkins_export(tmp_path, builds))
+    assert [r.actor for r in runs] == ["Ada", "Grace", "Ada", "dependabot[bot]"]
+    fixed_by_grace, fixed_by_bot = (
+        s for s in detect_signals(runs) if s.kind == "FAILED_RUN"
+    )
+    assert fixed_by_grace.engineer_minutes > GLANCE_MINUTES
+    assert fixed_by_bot.engineer_minutes == GLANCE_MINUTES
+    assert "dependabot[bot] pushed over it" in fixed_by_bot.detail
+
+
+def test_failures_without_a_sha_are_never_fanout_copies(tmp_path):
+    """Same title in three repos within minutes, but no sha: no commit says a
+    fix was copied, so none is reported as one."""
+    from toilaudit.ingest import load_jenkins_runs
+    from toilaudit.signals import detect_signals
+
+    builds = [
+        _jenkins_build(
+            n,
+            f"https://ci/job/{folder}/job/nightly/{n}/",
+            queueId=600 + n,
+            result="FAILURE",
+            timestamp=1780000000000 + n * 60000,
+            changeSets=[{"items": [{"msg": "Bump the base image"}]}],
+        )
+        for n, folder in ((1, "a"), (2, "b"), (3, "c"))
+    ]
+    runs = load_jenkins_runs(_jenkins_export(tmp_path, builds))
+    failed = [s for s in detect_signals(runs) if s.kind == "FAILED_RUN"]
+    assert len(failed) == 3
+    assert not any("same fix pushed to several repos" in s.detail for s in failed)
