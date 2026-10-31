@@ -59,6 +59,9 @@ python -m toilaudit runs.json --attribute-logs logs/
 # or try the bundled sample:
 python -m toilaudit data/sample_runs.json
 
+# what a fix returned: complete months before vs after a date or commit
+python -m toilaudit runs.json --change 2026-03-14 --fix-hours 8
+
 # GitLab CI:
 glab api 'projects/:id/pipelines?per_page=100' --paginate > pipelines.json
 python -m toilaudit pipelines.json --provider gitlab
