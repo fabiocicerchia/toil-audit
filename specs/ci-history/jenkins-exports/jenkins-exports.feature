@@ -3,7 +3,7 @@ Feature: Reading Jenkins build exports
   Lets a Jenkins team audit their toil by recovering, from build data, the repository, commit, branch, trigger, author and retries that Jenkins does not report directly.
 
   Background:
-    Given Given the operator has exported builds from Jenkins
+    Given the operator has exported builds from Jenkins
 
   @id:ci-history.jenkins-exports.001 @rule:ci-history.jenkins.retry-is-rebuild-of-same-commit-and-branch @verified @source:toilaudit/ingest.py#_jenkins_attempt_key @test:tests/test_toilaudit.py#test_jenkins_derives_attempts_from_builds_of_one_commit @test:tests/test_toilaudit.py#test_jenkins_same_commit_on_another_branch_is_not_a_retry @test:tests/test_toilaudit.py#test_jenkins_timer_rebuild_and_branchless_build_are_not_retries
   Scenario Outline: Only a rebuild of the same commit on the same branch in the same job counts as a retry
@@ -43,7 +43,7 @@ Feature: Reading Jenkins build exports
       | NOT_BUILT | skipped   |
 
   @id:ci-history.jenkins-exports.004 @rule:ci-history.jenkins.cause-maps-to-trigger @verified @source:toilaudit/ingest.py#_jenkins_event @test:tests/test_toilaudit.py#test_jenkins_vocabulary_maps_onto_the_detectors @test:tests/test_toilaudit.py#test_jenkins_runs_flow_through_the_signal_detectors
-  Scenario Outline: A build a person started counts as a manual trigger whatever else caused it
+  Scenario Outline: Jenkins build causes are read as the matching trigger, and a build a person started counts as manual whatever else caused it
     Given a build of job <job> whose recorded causes are <causes>
     When the operator analyses the export
     Then the run's trigger is <trigger>

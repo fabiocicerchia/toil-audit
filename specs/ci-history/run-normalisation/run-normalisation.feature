@@ -18,7 +18,7 @@ Feature: Normalising CI runs before costing
   Scenario: No run is charged more than six hours of runner time
     Given a GitHub run that started on 2025-06-18 at 21:29 and whose record was last touched on 2026-07-25
     When the operator analyses the export
-    Then the run's duration counts as 6 hours, not 400 days
+    Then the run's duration counts as 6 hours, not the 400-odd days between the two
 
   @id:ci-history.run-normalisation.003 @rule:ci-history.runs.unmeasured-queue-time-is-zero @verified @source:toilaudit/ingest.py#_to_gitlab_run @test:tests/test_toilaudit.py#test_gitlab_timings_and_missing_detail_fields @test:tests/test_toilaudit.py#test_jenkins_timings
   Scenario Outline: Queue time the export does not record is counted as zero, not estimated

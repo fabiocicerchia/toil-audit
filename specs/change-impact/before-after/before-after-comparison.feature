@@ -27,13 +27,13 @@ Feature: Comparing toil before and after a change
   Scenario Outline: The report states whether toil per month fell, rose or stayed the same after the change
     Given the before average is <before> a month and the after average is <after> a month
     When the operator runs the audit
-    Then the report states "<verdict> toil after the change" or "no change in toil per month"
+    Then the report states "<verdict>"
 
     Examples:
-      | before  | after   | verdict              |
-      | €400.00 | €100.00 | €300.00 a month less |
-      | €100.00 | €250.00 | €150.00 a month more |
-      | €200.00 | €200.00 | no change            |
+      | before  | after   | verdict                                    |
+      | €400.00 | €100.00 | €300.00 a month less toil after the change |
+      | €100.00 | €250.00 | €150.00 a month more toil after the change |
+      | €200.00 | €200.00 | no change in toil per month                |
 
   @id:change-impact.before-after.004 @rule:change-impact.before-after.one-sided-history-not-compared @verified @source:toilaudit/compare.py#Comparison @test:tests/test_compare.py#test_a_boundary_with_nothing_complete_on_one_side_is_not_comparable
   Scenario: Without a complete month on both sides, no comparison is given

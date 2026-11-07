@@ -10,7 +10,7 @@ Feature: Rolling up toil cost
     Given one broken commit turned three workflows red
     And an engineer was charged for triaging it once
     When the operator runs the audit
-    Then the failed-run line counts 3 events detected and 1 event charged
+    Then the "Failure triage" line counts 3 events detected and 1 event charged
     And its compute waste covers the runner time of all 3 red runs
     And kinds of toil are listed from the most to the least expensive
 

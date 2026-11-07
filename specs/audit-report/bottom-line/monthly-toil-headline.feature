@@ -24,7 +24,7 @@ Feature: Stating the monthly toil bill
 
   @id:audit-report.bottom-line.003 @rule:audit-report.keyboard-time.ceiling-from-human-pushes @verified @source:toilaudit/report.py#keyboard_hours @test:tests/test_toilaudit.py#test_one_sitting_is_its_span_plus_a_lead_in @test:tests/test_toilaudit.py#test_bots_do_not_sit_at_keyboards
   Scenario: Human keyboard time is capped by when people pushed, with a lead-in per sitting
-    Given in one month people pushed at 18:00, 18:20 and 18:40, and nobody pushed again that month
+    Given in the headline month people pushed at 18:00, 18:20 and 18:40, and nobody pushed again that month
     And a bot also pushed during that month
     When the operator runs the audit
     Then the pushes count as one sitting of 40 minutes plus a 30-minute lead-in

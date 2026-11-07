@@ -3,7 +3,7 @@ Feature: Reading GitLab CI pipeline exports
   Lets a GitLab team get the same toil audit as GitHub users, by mapping pipeline statuses, sources and retries onto the same signals.
 
   Background:
-    Given Given the operator has exported pipelines from GitLab CI
+    Given the operator has exported pipelines from GitLab CI
 
   @id:ci-history.gitlab-exports.001 @rule:ci-history.gitlab.retry-is-next-pipeline-on-same-commit @verified @source:toilaudit/ingest.py#load_gitlab_runs @test:tests/test_toilaudit.py#test_gitlab_derives_run_attempts_from_repeated_commits @test:tests/test_toilaudit.py#test_gitlab_runs_flow_through_the_signal_detectors
   Scenario: A second pipeline on the same commit and branch counts as a retry
@@ -30,7 +30,7 @@ Feature: Reading GitLab CI pipeline exports
       | skipped  | skipped                                |
 
   @id:ci-history.gitlab-exports.003 @rule:ci-history.gitlab.source-maps-to-trigger @verified @source:toilaudit/ingest.py#_to_gitlab_run @test:tests/test_toilaudit.py#test_gitlab_vocabulary_maps_onto_the_detectors @questionable
-  Scenario Outline: Pipelines started from the UI, the API or a trigger token count as manual triggers
+  Scenario Outline: GitLab pipeline sources are read as the matching trigger, with UI, API and trigger-token starts counting as manual
     Given a pipeline whose source is <source>
     When the operator analyses the export
     Then the run's trigger is <trigger>

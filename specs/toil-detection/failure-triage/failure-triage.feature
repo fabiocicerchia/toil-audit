@@ -3,7 +3,7 @@ Feature: Pricing failure triage
   Charges engineering leads for the time people actually spent on broken commits, measured from the timeline rather than assumed, so the euro figure holds up.
 
   Background:
-    Given each workflow run is charged the runner time it used
+    Given each failed run is charged the runner time it used
 
   @id:toil-detection.failure-triage.001 @rule:toil.triage.once-per-broken-commit @verified @source:toilaudit/signals.py#detect_signals @test:tests/test_toilaudit.py#test_one_broken_commit_is_triaged_once
   Scenario: A broken commit is triaged once however many workflows fail on it

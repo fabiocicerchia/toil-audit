@@ -19,7 +19,7 @@ Feature: Styling the documentation site and splash page
     When a reader moves from the splash page to the rendered docs
     Then the splash page heading and button gradients blend cyan into indigo
     And the docs hero heading and primary buttons blend the same cyan into the same indigo
-    And the docs header chrome uses the indigo accent
+    And the docs theme's primary colour is the indigo accent
 
   @id:docs.documentation.docs-theme.003 @rule:documentation.docs-theme.legible-links-per-scheme @inferred @source:docs/stylesheets/extra.css#[data-md-color-scheme="slate"]
   Scenario Outline: Links stay legible in both light and dark schemes
