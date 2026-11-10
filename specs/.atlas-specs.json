@@ -1,0 +1,1707 @@
+{
+ "excluded": {
+  "toil-audit/makefile": [
+   {
+    "candidate": "Running `make` with no target lists every available verb with its description",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#help"
+   },
+   {
+    "candidate": "`make setup` installs the development dependencies and the pre-commit hook",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#setup"
+   },
+   {
+    "candidate": "`make run` runs the analyser with ARGS, defaulting to --help",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#run"
+   },
+   {
+    "candidate": "`make test` runs the test suite with pytest",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#test"
+   },
+   {
+    "candidate": "`make lint` runs every pre-commit hook over every file",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#lint"
+   },
+   {
+    "candidate": "`make format` formats the tree with ruff",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#format"
+   },
+   {
+    "candidate": "`make analyze` refuses with exit 69 and an install link when trivy is missing, otherwise scans for CRITICAL/HIGH vulnerabilities, misconfiguration and secrets",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#analyze"
+   },
+   {
+    "candidate": "`make clean` deletes the .toilaudit-cache fetch cache",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#clean"
+   },
+   {
+    "candidate": "`make install` runs `pip install .`, even though the section header and CLAUDE.md call it a declared no-op (the package has no packaging metadata), so it contradicts its own docs",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#install"
+   },
+   {
+    "candidate": "`make build` prints that there is nothing to build and points to README > Not applicable",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#build"
+   }
+  ],
+  "toilaudit/attribute": [
+   {
+    "candidate": "Identities are de-duplicated and sorted for stable output",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/attribute.py#failing_tests"
+   },
+   {
+    "candidate": "file_of strips the ::case name to get the file",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/attribute.py#file_of"
+   },
+   {
+    "candidate": "Per-test (by_test) cost totals kept alongside per-file",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/attribute.py#Attribution"
+   },
+   {
+    "candidate": "Shares accumulated at 6 decimals and rounded to cents once at the end",
+    "covered_by": "flaky-attribution.offender-ranking.partitions-the-flaky-total",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/attribute.py#attribute"
+   },
+   {
+    "candidate": "Zip logs read in memory, never written to disk",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/attribute.py#logs_from_zip"
+   },
+   {
+    "candidate": "Directory entries and unreadable members of the zip are skipped",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/attribute.py#logs_from_zip"
+   },
+   {
+    "candidate": "Attribution count of attributed recoveries",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/attribute.py#Attribution"
+   }
+  ],
+  "toilaudit/compare": [
+   {
+    "candidate": "Comparison record shape (boundary, windows as month/value pairs, fix cost field)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/compare.py#Comparison"
+   },
+   {
+    "candidate": "Commit sha matching is case-insensitive and accepts a prefix of 7+ characters",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/compare.py#resolve_boundary"
+   },
+   {
+    "candidate": "Month series walks calendar months including December→January rollover",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/compare.py#month_series"
+   },
+   {
+    "candidate": "Empty run list yields an empty month series",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/compare.py#month_series"
+   },
+   {
+    "candidate": "Partial first/last months are dropped before comparing",
+    "covered_by": "audit-report/monthly-trend (complete calendar months only)",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/report.py#complete_months"
+   },
+   {
+    "candidate": "A clean last month is the headline and appears in the monthly trend",
+    "covered_by": "audit-report/bottom-line and audit-report/monthly-trend",
+    "reason": "DUPLICATE_OF",
+    "source": "tests/test_compare.py#test_a_clean_last_month_is_the_headline_and_in_the_trend"
+   }
+  ],
+  "toilaudit/costing": [
+   {
+    "candidate": "Rounding of minutes to 0.1 and euros to cents in each figure",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/costing.py#summarize_costs"
+   },
+   {
+    "candidate": "Shared templates appear only when copied into more than one repository, top 8",
+    "covered_by": "audit-report/cost-breakdown (report module)",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/report.py"
+   },
+   {
+    "candidate": "Signal cost helper sums engineer and compute per signal",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/costing.py#_signal_cost"
+   },
+   {
+    "candidate": "Frozen result data structures CostLine, TemplateLine, CostSummary",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/costing.py#CostSummary"
+   },
+   {
+    "candidate": "Template entries ordered most expensive first",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/costing.py#summarize_costs"
+   }
+  ],
+  "toilaudit/fetch": [
+   {
+    "candidate": "Pages are requested 100 at a time and pagination stops on an empty or short page",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/fetch.py#fetch_pages"
+   },
+   {
+    "candidate": "Saved page file names are a hash of the URL so a query string cannot escape the directory",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/fetch.py#_cache_path"
+   },
+   {
+    "candidate": "Request headers: Accept, X-GitHub-Api-Version 2022-11-28, User-Agent toil-audit",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/fetch.py#_request"
+   },
+   {
+    "candidate": "One extra second added to the rate-limit wait to absorb clock skew",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/fetch.py#_sleep_until"
+   },
+   {
+    "candidate": "Exit codes for a missing token and for rate limiting",
+    "covered_by": "command-line/errors-exit-codes (owned by the toilaudit/__main__ module)",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/__main__.py#EXIT_CODES"
+   },
+   {
+    "candidate": "--no-cache forces a fresh fetch and skips the cache",
+    "covered_by": "command-line/input-selection (owned by the toilaudit/__main__ module)",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/__main__.py#_build_parser"
+   },
+   {
+    "candidate": "Injected opener, sleep and clock for testing",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "toilaudit/fetch.py#fetch_pages"
+   }
+  ],
+  "toilaudit/ingest": [
+   {
+    "candidate": "Jenkins run id uses the controller-wide queue id, falling back to the build number",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/ingest.py#_to_jenkins_run"
+   },
+   {
+    "candidate": "Workflow label prefixes the repository (owner/repo/workflow) so names don't collide across repos",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/ingest.py#Run"
+   },
+   {
+    "candidate": "Template identity is the workflow file path, else the workflow name",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/ingest.py#Run"
+   },
+   {
+    "candidate": "A broken commit is identified by (repo, sha)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/ingest.py#Run"
+   },
+   {
+    "candidate": "Negative queue or run time clamped to zero",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/ingest.py#Run"
+   },
+   {
+    "candidate": "GitHub run with no conclusion reads as in_progress; missing run_started_at falls back to created_at; title is the first line of display title or commit message",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/ingest.py#_to_run"
+   },
+   {
+    "candidate": "GitLab workflow name defaults to .gitlab-ci.yml and every pipeline shares that template path",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/ingest.py#_to_gitlab_run"
+   },
+   {
+    "candidate": "JENKINS_TREE query string the operator passes to api/json",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/ingest.py#JENKINS_TREE"
+   },
+   {
+    "candidate": "Git remote URL parsing variants (https, scp-style, ssh with port, case-folded host)",
+    "covered_by": "ci-history.jenkins.repository-and-workflow-identity",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/ingest.py#_git_remote"
+   },
+   {
+    "candidate": "Jenkins builds without a timestamp are dropped",
+    "covered_by": "ci-history.runs.unfinished-runs-excluded",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/ingest.py#load_jenkins_runs"
+   },
+   {
+    "candidate": "Jenkins export accepts either allBuilds or builds key",
+    "covered_by": "ci-history.exports.paginated-pages-read-as-one",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/ingest.py#_load_json_pages"
+   },
+   {
+    "candidate": "Provider name to loader lookup (github, gitlab, jenkins)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/ingest.py#LOADERS"
+   },
+   {
+    "candidate": "Runs returned sorted by queue time",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "toilaudit/ingest.py#runs_from_objects"
+   }
+  ],
+  "toilaudit/patterns": [
+   {
+    "candidate": "Regexes are compiled in one module and nowhere else from literals",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/patterns.py#PATTERNS"
+   },
+   {
+    "candidate": "Identities are de-duplicated and sorted for a stable report",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/attribute.py#failing_tests"
+   },
+   {
+    "candidate": "Cost of a recovery is split evenly across its failing tests and partitions the total",
+    "covered_by": "belongs to flaky-attribution/offender-ranking (attribute module), not enforced in patterns.py",
+    "reason": "UNVERIFIABLE",
+    "source": "toilaudit/attribute.py#attribute"
+   }
+  ],
+  "toilaudit/report": [
+   {
+    "candidate": "Costliest workflows list capped at 8 and sample incidents capped at the 10 largest",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/report.py#build_report"
+   },
+   {
+    "candidate": "Flaky test attribution section placed before the workflow rankings",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/report.py#build_report"
+   },
+   {
+    "candidate": "Euro formatting with thousands separators and two decimals",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/report.py#_eur"
+   },
+   {
+    "candidate": "Generated-at footer timestamp and methodology pointer",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/report.py#build_report"
+   },
+   {
+    "candidate": "Window label wording ('2026-01 → 2026-03, 3 months')",
+    "covered_by": "change-impact.before-after.monthly-verdict",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/report.py#_window_label"
+   },
+   {
+    "candidate": "Complete-month detection by first/last run day",
+    "covered_by": "audit-report.monthly-trend.partial-months-marked",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/report.py#complete_months"
+   },
+   {
+    "candidate": "Signal kind display labels",
+    "covered_by": "audit-report.cost-breakdown.per-signal-table",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/report.py#_KIND_LABELS"
+   }
+  ],
+  "toilaudit/signals": [
+   {
+    "candidate": "Per-signal minute overrides passed to detect_signals",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/signals.py#detect_signals"
+   },
+   {
+    "candidate": "A success with the same run id as the remembered failure is not a recovery",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/signals.py#detect_signals"
+   },
+   {
+    "candidate": "Next-push index sorted per repository and branch, found by bisection",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/signals.py#_next_push_index"
+   },
+   {
+    "candidate": "Negative gap to the next push clamped to zero",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/signals.py#_next_push"
+   },
+   {
+    "candidate": "Signal record shape (kind, run, detail, minutes, compute)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/signals.py#Signal"
+   },
+   {
+    "candidate": "Every red run bills its runner time",
+    "covered_by": "toil.triage.once-per-broken-commit",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/signals.py#detect_signals"
+   },
+   {
+    "candidate": "A fan-out copy that was never fixed is still capped at 1 minute",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/signals.py#_triage_cost"
+   }
+  ],
+  "toilaudit/toilaudit": [
+   {
+    "candidate": "--since passed to the GitHub fetch as a created>= filter",
+    "covered_by": "ci-history/github-fetch (fetch module)",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/__main__.py#main"
+   },
+   {
+    "candidate": "--cache-dir default .toilaudit-cache and --no-cache bypass",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/__main__.py#_build_parser"
+   },
+   {
+    "candidate": "--provider chooses the export loader (github default)",
+    "covered_by": "ci-history/*-exports (ingest module)",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/__main__.py#_build_parser"
+   },
+   {
+    "candidate": "Before/after comparison and ROI wording in the report",
+    "covered_by": "change-impact/before-after, change-impact/fix-roi (compare module)",
+    "reason": "DUPLICATE_OF",
+    "source": "toilaudit/__main__.py#main"
+   },
+   {
+    "candidate": "Unlisted errors keep their traceback",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "toilaudit/__main__.py#EXIT_CODES"
+   },
+   {
+    "candidate": "Package docstring in __init__.py",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "toilaudit/__init__.py"
+   }
+  ]
+ },
+ "lifted": {
+  "toil-audit/makefile": [],
+  "toilaudit/attribute": [],
+  "toilaudit/compare": [],
+  "toilaudit/costing": [],
+  "toilaudit/fetch": [
+   {
+    "from_source": "toilaudit/fetch.py#fetch_pages",
+    "rule": "ci-history.github-fetch.token-never-persisted"
+   },
+   {
+    "from_source": "toilaudit/fetch.py#_cache_path",
+    "rule": "ci-history.fetch-cache.rerun-is-offline"
+   }
+  ],
+  "toilaudit/ingest": [],
+  "toilaudit/patterns": [],
+  "toilaudit/report": [],
+  "toilaudit/signals": [],
+  "toilaudit/toilaudit": []
+ },
+ "retired": [
+  "change-impact.before-after.005",
+  "change-impact.before-after.006",
+  "change-impact.fix-roi.001",
+  "change-impact.fix-roi.002",
+  "change-impact.fix-roi.003",
+  "change-impact.fix-roi.004",
+  "change-impact.fix-roi.005",
+  "ci-history.github-exports.002",
+  "command-line.input-selection.003",
+  "command-line.input-selection.004",
+  "cost-model.signal-minutes.001",
+  "flaky-attribution.failure-parsing.001",
+  "flaky-attribution.failure-parsing.003",
+  "flaky-attribution.failure-parsing.004",
+  "flaky-attribution.failure-parsing.005",
+  "flaky-attribution.failure-parsing.006",
+  "flaky-attribution.log-sources.002",
+  "toil-detection.manual-triggers.002"
+ ],
+ "scenarios": {
+  "audit-report.bottom-line.001": {
+   "file": "specs/audit-report/bottom-line/monthly-toil-headline.feature",
+   "fingerprint": "7c85c43929a8",
+   "human": false,
+   "rule": "audit-report.bottom-line.headline-is-last-complete-month",
+   "source": "toilaudit/report.py#_bottom_line",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_partial_edge_months_excluded_from_run_rate",
+   "tests": [
+    "tests/test_toilaudit.py#test_partial_edge_months_excluded_from_run_rate"
+   ]
+  },
+  "audit-report.bottom-line.002": {
+   "file": "specs/audit-report/bottom-line/monthly-toil-headline.feature",
+   "fingerprint": "7c85c43929a8",
+   "human": false,
+   "rule": "audit-report.bottom-line.average-when-no-complete-month",
+   "source": "toilaudit/report.py#_bottom_line",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "audit-report.bottom-line.003": {
+   "file": "specs/audit-report/bottom-line/monthly-toil-headline.feature",
+   "fingerprint": "6dd65e12b788",
+   "human": false,
+   "rule": "audit-report.keyboard-time.ceiling-from-human-pushes",
+   "source": "toilaudit/report.py#keyboard_hours",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_one_sitting_is_its_span_plus_a_lead_in",
+   "tests": [
+    "tests/test_toilaudit.py#test_one_sitting_is_its_span_plus_a_lead_in",
+    "tests/test_toilaudit.py#test_bots_do_not_sit_at_keyboards"
+   ]
+  },
+  "audit-report.bottom-line.004": {
+   "file": "specs/audit-report/bottom-line/monthly-toil-headline.feature",
+   "fingerprint": "7c85c43929a8",
+   "human": false,
+   "rule": "audit-report.keyboard-time.bill-over-half-is-flagged",
+   "source": "toilaudit/report.py#_bottom_line",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_report_flags_a_bill_bigger_than_the_working_month",
+   "tests": [
+    "tests/test_toilaudit.py#test_report_flags_a_bill_bigger_than_the_working_month"
+   ]
+  },
+  "audit-report.bottom-line.005": {
+   "file": "specs/audit-report/bottom-line/monthly-toil-headline.feature",
+   "fingerprint": "1d764683d017",
+   "human": false,
+   "rule": "audit-report.monthly-trend.partial-months-marked",
+   "source": "toilaudit/report.py#_monthly_trend",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_partial_edge_months_excluded_from_run_rate",
+   "tests": [
+    "tests/test_toilaudit.py#test_partial_edge_months_excluded_from_run_rate"
+   ]
+  },
+  "audit-report.cost-breakdown.001": {
+   "file": "specs/audit-report/cost-breakdown/toil-cost-breakdown.feature",
+   "fingerprint": "4ca3882b8c4c",
+   "human": false,
+   "rule": "audit-report.cost-breakdown.header-states-scope-and-rate",
+   "source": "toilaudit/report.py#build_report",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "audit-report.cost-breakdown.002": {
+   "file": "specs/audit-report/cost-breakdown/toil-cost-breakdown.feature",
+   "fingerprint": "c28236ed7c4d",
+   "human": false,
+   "rule": "audit-report.cost-breakdown.per-signal-table",
+   "source": "toilaudit/report.py#_cost_table",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_sample_dataset_produces_report",
+   "tests": [
+    "tests/test_toilaudit.py#test_sample_dataset_produces_report"
+   ]
+  },
+  "audit-report.cost-breakdown.003": {
+   "file": "specs/audit-report/cost-breakdown/toil-cost-breakdown.feature",
+   "fingerprint": "4ca3882b8c4c",
+   "human": false,
+   "rule": "audit-report.cost-breakdown.shared-workflow-files-listed",
+   "source": "toilaudit/report.py#build_report",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "change-impact.before-after.001": {
+   "file": "specs/change-impact/before-after/before-after-comparison.feature",
+   "fingerprint": "6c2d5cbfd08d",
+   "human": false,
+   "rule": "change-impact.before-after.complete-months-either-side-of-change-month",
+   "source": "toilaudit/compare.py#compare",
+   "status": "verified",
+   "test": "tests/test_compare.py#test_the_month_of_the_change_is_in_neither_window",
+   "tests": [
+    "tests/test_compare.py#test_the_month_of_the_change_is_in_neither_window",
+    "tests/test_compare.py#test_a_saving_and_its_roi"
+   ]
+  },
+  "change-impact.before-after.002": {
+   "file": "specs/change-impact/before-after/before-after-comparison.feature",
+   "fingerprint": "9d41e6114af3",
+   "human": false,
+   "rule": "change-impact.before-after.toil-free-month-counts-as-zero",
+   "source": "toilaudit/compare.py#month_series",
+   "status": "verified",
+   "test": "tests/test_compare.py#test_a_month_with_no_toil_counts_as_zero_not_as_missing",
+   "tests": [
+    "tests/test_compare.py#test_a_month_with_no_toil_counts_as_zero_not_as_missing",
+    "tests/test_compare.py#test_a_clean_month_after_the_fix_lowers_the_after_average"
+   ]
+  },
+  "change-impact.before-after.003": {
+   "file": "specs/change-impact/before-after/before-after-comparison.feature",
+   "fingerprint": "f6e6eb353201",
+   "human": false,
+   "rule": "change-impact.before-after.verdict-states-direction",
+   "source": "toilaudit/report.py#_before_after",
+   "status": "verified",
+   "test": "tests/test_compare.py#test_the_report_states_an_increase",
+   "tests": [
+    "tests/test_compare.py#test_the_report_states_an_increase",
+    "tests/test_compare.py#test_the_report_states_a_saving_and_its_roi",
+    "tests/test_compare.py#test_toil_that_went_up_is_reported_as_a_loss",
+    "tests/test_compare.py#test_no_change_in_toil_never_pays_back_rather_than_dividing_by_zero"
+   ]
+  },
+  "change-impact.before-after.004": {
+   "file": "specs/change-impact/before-after/before-after-comparison.feature",
+   "fingerprint": "2c52265c27c5",
+   "human": false,
+   "rule": "change-impact.before-after.one-sided-history-not-compared",
+   "source": "toilaudit/compare.py#Comparison",
+   "status": "verified",
+   "test": "tests/test_compare.py#test_a_boundary_with_nothing_complete_on_one_side_is_not_comparable",
+   "tests": [
+    "tests/test_compare.py#test_a_boundary_with_nothing_complete_on_one_side_is_not_comparable"
+   ]
+  },
+  "change-impact.before-after.007": {
+   "file": "specs/change-impact/fix-roi/fix-roi.feature",
+   "fingerprint": "f6e6eb353201",
+   "human": false,
+   "rule": "change-impact.fix-roi.payback-statement",
+   "source": "toilaudit/report.py#_before_after",
+   "status": "verified",
+   "test": "tests/test_compare.py#test_without_fix_hours_the_roi_is_left_out_and_says_so",
+   "tests": [
+    "tests/test_compare.py#test_without_fix_hours_the_roi_is_left_out_and_says_so",
+    "tests/test_compare.py#test_the_report_states_a_saving_and_its_roi",
+    "tests/test_compare.py#test_the_report_states_an_increase"
+   ]
+  },
+  "change-impact.change-boundary.001": {
+   "file": "specs/change-impact/change-boundary/change-boundary.feature",
+   "fingerprint": "403c6ce367fa",
+   "human": false,
+   "rule": "change-impact.change-boundary.date-or-first-run-of-commit",
+   "source": "toilaudit/compare.py#resolve_boundary",
+   "status": "verified",
+   "test": "tests/test_compare.py#test_boundary_by_date_or_by_the_commit_a_fix_landed_in",
+   "tests": [
+    "tests/test_compare.py#test_boundary_by_date_or_by_the_commit_a_fix_landed_in",
+    "tests/test_compare.py#test_the_report_states_an_increase"
+   ]
+  },
+  "change-impact.change-boundary.002": {
+   "file": "specs/change-impact/change-boundary/change-boundary.feature",
+   "fingerprint": "403c6ce367fa",
+   "human": false,
+   "rule": "change-impact.change-boundary.unresolvable-change-refused",
+   "source": "toilaudit/compare.py#resolve_boundary",
+   "status": "verified",
+   "test": "tests/test_compare.py#test_boundary_by_date_or_by_the_commit_a_fix_landed_in",
+   "tests": [
+    "tests/test_compare.py#test_boundary_by_date_or_by_the_commit_a_fix_landed_in",
+    "tests/test_compare.py#test_a_sha_prefix_matching_two_commits_is_refused",
+    "tests/test_compare.py#test_an_unknown_commit_is_refused_rather_than_guessed"
+   ]
+  },
+  "ci-history.fetch-cache.001": {
+   "file": "specs/ci-history/fetch-cache/fetch-cache-and-rate-limits.feature",
+   "fingerprint": "9c90afcee66c",
+   "human": false,
+   "rule": "ci-history.fetch-cache.rerun-is-offline",
+   "source": "toilaudit/fetch.py#fetch_pages",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_cache_means_the_second_run_makes_no_requests",
+   "tests": [
+    "tests/test_fetch.py#test_cache_means_the_second_run_makes_no_requests",
+    "tests/test_fetch.py#test_cache_key_is_per_page_not_per_repo"
+   ]
+  },
+  "ci-history.fetch-cache.002": {
+   "file": "specs/ci-history/fetch-cache/fetch-cache-and-rate-limits.feature",
+   "fingerprint": "9c90afcee66c",
+   "human": false,
+   "rule": "ci-history.fetch-cache.rate-limit-waits-and-resumes",
+   "source": "toilaudit/fetch.py#fetch_pages",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_rate_limit_waits_and_resumes_on_the_same_page",
+   "tests": [
+    "tests/test_fetch.py#test_rate_limit_waits_and_resumes_on_the_same_page"
+   ]
+  },
+  "ci-history.fetch-cache.003": {
+   "file": "specs/ci-history/fetch-cache/fetch-cache-and-rate-limits.feature",
+   "fingerprint": "9c90afcee66c",
+   "human": false,
+   "rule": "ci-history.fetch-cache.rate-limit-gives-up",
+   "source": "toilaudit/fetch.py#fetch_pages",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_rate_limit_gives_up_rather_than_looping_for_ever",
+   "tests": [
+    "tests/test_fetch.py#test_rate_limit_gives_up_rather_than_looping_for_ever"
+   ]
+  },
+  "ci-history.fetch-cache.004": {
+   "file": "specs/ci-history/fetch-cache/fetch-cache-and-rate-limits.feature",
+   "fingerprint": "9c90afcee66c",
+   "human": false,
+   "rule": "ci-history.fetch-cache.refusal-not-waited-out",
+   "source": "toilaudit/fetch.py#fetch_pages",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_a_403_that_is_not_a_rate_limit_is_not_retried",
+   "tests": [
+    "tests/test_fetch.py#test_a_403_that_is_not_a_rate_limit_is_not_retried"
+   ]
+  },
+  "ci-history.github-exports.001": {
+   "file": "specs/ci-history/github-exports/github-actions-exports.feature",
+   "fingerprint": "d263bf5a9824",
+   "human": false,
+   "rule": "ci-history.exports.paginated-pages-read-as-one",
+   "source": "toilaudit/ingest.py#_load_json_pages",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_paginated_concatenation",
+   "tests": [
+    "tests/test_toilaudit.py#test_paginated_concatenation",
+    "tests/test_toilaudit.py#test_gitlab_accepts_concatenated_pages",
+    "tests/test_toilaudit.py#test_jenkins_concatenated_job_documents_are_one_export",
+    "tests/test_toilaudit.py#test_jenkins_builds_key_is_accepted_as_well_as_allbuilds"
+   ]
+  },
+  "ci-history.github-fetch.001": {
+   "file": "specs/ci-history/github-fetch/github-live-fetch.feature",
+   "fingerprint": "1d74dcd56dc0",
+   "human": false,
+   "rule": "ci-history.github-fetch.token-from-environment-only",
+   "source": "toilaudit/fetch.py#token_from_env",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_token_comes_from_the_environment_only",
+   "tests": [
+    "tests/test_fetch.py#test_token_comes_from_the_environment_only"
+   ]
+  },
+  "ci-history.github-fetch.002": {
+   "file": "specs/ci-history/github-fetch/github-live-fetch.feature",
+   "fingerprint": "1d74dcd56dc0",
+   "human": false,
+   "rule": "ci-history.github-fetch.missing-token-refused",
+   "source": "toilaudit/fetch.py#token_from_env",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_token_comes_from_the_environment_only",
+   "tests": [
+    "tests/test_fetch.py#test_token_comes_from_the_environment_only"
+   ]
+  },
+  "ci-history.github-fetch.003": {
+   "file": "specs/ci-history/github-fetch/github-live-fetch.feature",
+   "fingerprint": "9c90afcee66c",
+   "human": false,
+   "rule": "ci-history.github-fetch.token-never-persisted",
+   "source": "toilaudit/fetch.py#fetch_pages",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_token_is_sent_but_never_in_the_url",
+   "tests": [
+    "tests/test_fetch.py#test_token_is_sent_but_never_in_the_url",
+    "tests/test_fetch.py#test_the_cache_never_contains_the_token"
+   ]
+  },
+  "ci-history.github-fetch.004": {
+   "file": "specs/ci-history/github-fetch/github-live-fetch.feature",
+   "fingerprint": "81d0fb364fdc",
+   "human": false,
+   "rule": "ci-history.github-fetch.since-filters-at-source",
+   "source": "toilaudit/fetch.py#fetch_github_runs",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_since_becomes_an_api_filter_not_a_local_trim",
+   "tests": [
+    "tests/test_fetch.py#test_since_becomes_an_api_filter_not_a_local_trim"
+   ]
+  },
+  "ci-history.github-fetch.005": {
+   "file": "specs/ci-history/github-fetch/github-live-fetch.feature",
+   "fingerprint": "81d0fb364fdc",
+   "human": false,
+   "rule": "ci-history.github-fetch.same-result-as-export",
+   "source": "toilaudit/fetch.py#fetch_github_runs",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_api_and_export_agree_over_the_same_period",
+   "tests": [
+    "tests/test_fetch.py#test_api_and_export_agree_over_the_same_period",
+    "tests/test_fetch.py#test_fetch_github_runs_returns_raw_objects_for_the_shared_loader",
+    "tests/test_fetch.py#test_pagination_stops_on_a_short_page"
+   ]
+  },
+  "ci-history.github-fetch.006": {
+   "file": "specs/ci-history/github-fetch/github-live-fetch.feature",
+   "fingerprint": "9c90afcee66c",
+   "human": false,
+   "rule": "ci-history.github-fetch.history-capped-at-1000-runs",
+   "source": "toilaudit/fetch.py#fetch_pages",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "ci-history.github-fetch.007": {
+   "file": "specs/ci-history/github-fetch/github-live-fetch.feature",
+   "fingerprint": "9c90afcee66c",
+   "human": false,
+   "rule": "ci-history.github-fetch.api-error-stops-fetch",
+   "source": "toilaudit/fetch.py#fetch_pages",
+   "status": "verified",
+   "test": "tests/test_fetch.py#test_other_http_errors_propagate",
+   "tests": [
+    "tests/test_fetch.py#test_other_http_errors_propagate"
+   ]
+  },
+  "ci-history.gitlab-exports.001": {
+   "file": "specs/ci-history/gitlab-exports/gitlab-exports.feature",
+   "fingerprint": "305798155fc1",
+   "human": false,
+   "rule": "ci-history.gitlab.retry-is-next-pipeline-on-same-commit",
+   "source": "toilaudit/ingest.py#load_gitlab_runs",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_gitlab_derives_run_attempts_from_repeated_commits",
+   "tests": [
+    "tests/test_toilaudit.py#test_gitlab_derives_run_attempts_from_repeated_commits",
+    "tests/test_toilaudit.py#test_gitlab_runs_flow_through_the_signal_detectors"
+   ]
+  },
+  "ci-history.gitlab-exports.002": {
+   "file": "specs/ci-history/gitlab-exports/gitlab-exports.feature",
+   "fingerprint": "db2cd0b0898c",
+   "human": false,
+   "rule": "ci-history.gitlab.status-maps-to-outcome",
+   "source": "toilaudit/ingest.py#_to_gitlab_run",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_gitlab_vocabulary_maps_onto_the_detectors",
+   "tests": [
+    "tests/test_toilaudit.py#test_gitlab_vocabulary_maps_onto_the_detectors"
+   ]
+  },
+  "ci-history.gitlab-exports.003": {
+   "file": "specs/ci-history/gitlab-exports/gitlab-exports.feature",
+   "fingerprint": "db2cd0b0898c",
+   "human": false,
+   "rule": "ci-history.gitlab.source-maps-to-trigger",
+   "source": "toilaudit/ingest.py#_to_gitlab_run",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_gitlab_vocabulary_maps_onto_the_detectors",
+   "tests": [
+    "tests/test_toilaudit.py#test_gitlab_vocabulary_maps_onto_the_detectors"
+   ]
+  },
+  "ci-history.gitlab-exports.004": {
+   "file": "specs/ci-history/gitlab-exports/gitlab-exports.feature",
+   "fingerprint": "2fd458d214bd",
+   "human": false,
+   "rule": "ci-history.gitlab.repository-from-pipeline-url",
+   "source": "toilaudit/ingest.py#_gitlab_repo",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_gitlab_vocabulary_maps_onto_the_detectors",
+   "tests": [
+    "tests/test_toilaudit.py#test_gitlab_vocabulary_maps_onto_the_detectors"
+   ]
+  },
+  "ci-history.jenkins-exports.001": {
+   "file": "specs/ci-history/jenkins-exports/jenkins-exports.feature",
+   "fingerprint": "a85c4736ed19",
+   "human": false,
+   "rule": "ci-history.jenkins.retry-is-rebuild-of-same-commit-and-branch",
+   "source": "toilaudit/ingest.py#_jenkins_attempt_key",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_jenkins_derives_attempts_from_builds_of_one_commit",
+   "tests": [
+    "tests/test_toilaudit.py#test_jenkins_derives_attempts_from_builds_of_one_commit",
+    "tests/test_toilaudit.py#test_jenkins_same_commit_on_another_branch_is_not_a_retry",
+    "tests/test_toilaudit.py#test_jenkins_timer_rebuild_and_branchless_build_are_not_retries"
+   ]
+  },
+  "ci-history.jenkins-exports.002": {
+   "file": "specs/ci-history/jenkins-exports/jenkins-exports.feature",
+   "fingerprint": "61099f5bcd2f",
+   "human": false,
+   "rule": "ci-history.jenkins.timer-build-is-never-a-retry",
+   "source": "toilaudit/ingest.py#_jenkins_attempt",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_jenkins_timer_rebuild_and_branchless_build_are_not_retries",
+   "tests": [
+    "tests/test_toilaudit.py#test_jenkins_timer_rebuild_and_branchless_build_are_not_retries"
+   ]
+  },
+  "ci-history.jenkins-exports.003": {
+   "file": "specs/ci-history/jenkins-exports/jenkins-exports.feature",
+   "fingerprint": "39acd3c297c5",
+   "human": false,
+   "rule": "ci-history.jenkins.result-maps-to-outcome",
+   "source": "toilaudit/ingest.py#_to_jenkins_run",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_jenkins_vocabulary_maps_onto_the_detectors",
+   "tests": [
+    "tests/test_toilaudit.py#test_jenkins_vocabulary_maps_onto_the_detectors"
+   ]
+  },
+  "ci-history.jenkins-exports.004": {
+   "file": "specs/ci-history/jenkins-exports/jenkins-exports.feature",
+   "fingerprint": "dc98a22984c1",
+   "human": false,
+   "rule": "ci-history.jenkins.cause-maps-to-trigger",
+   "source": "toilaudit/ingest.py#_jenkins_event",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_jenkins_vocabulary_maps_onto_the_detectors",
+   "tests": [
+    "tests/test_toilaudit.py#test_jenkins_vocabulary_maps_onto_the_detectors",
+    "tests/test_toilaudit.py#test_jenkins_runs_flow_through_the_signal_detectors"
+   ]
+  },
+  "ci-history.jenkins-exports.005": {
+   "file": "specs/ci-history/jenkins-exports/jenkins-exports.feature",
+   "fingerprint": "12b72dcf94eb",
+   "human": false,
+   "rule": "ci-history.jenkins.repository-and-workflow-identity",
+   "source": "toilaudit/ingest.py#_jenkins_repo",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_jenkins_repo_and_workflow_derivation",
+   "tests": [
+    "tests/test_toilaudit.py#test_jenkins_repo_and_workflow_derivation",
+    "tests/test_toilaudit.py#test_jenkins_slashed_branch_and_spaced_folder_are_decoded",
+    "tests/test_toilaudit.py#test_jenkins_git_remote_forms"
+   ]
+  },
+  "ci-history.jenkins-exports.006": {
+   "file": "specs/ci-history/jenkins-exports/jenkins-exports.feature",
+   "fingerprint": "4eda16b9cd5d",
+   "human": false,
+   "rule": "ci-history.jenkins.ambiguous-checkouts-carry-no-git-data",
+   "source": "toilaudit/ingest.py#_jenkins_checkouts",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_jenkins_two_checkouts_of_different_commits_are_no_git_data",
+   "tests": [
+    "tests/test_toilaudit.py#test_jenkins_two_checkouts_of_different_commits_are_no_git_data",
+    "tests/test_toilaudit.py#test_jenkins_same_path_on_two_hosts_is_two_checkouts"
+   ]
+  },
+  "ci-history.jenkins-exports.007": {
+   "file": "specs/ci-history/jenkins-exports/jenkins-exports.feature",
+   "fingerprint": "6ce8f3f21568",
+   "human": false,
+   "rule": "ci-history.jenkins.push-actor-is-change-author",
+   "source": "toilaudit/ingest.py#_jenkins_change",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_jenkins_push_actor_is_the_change_author",
+   "tests": [
+    "tests/test_toilaudit.py#test_jenkins_push_actor_is_the_change_author",
+    "tests/test_toilaudit.py#test_jenkins_repo_and_workflow_derivation"
+   ]
+  },
+  "ci-history.run-normalisation.001": {
+   "file": "specs/ci-history/run-normalisation/run-normalisation.feature",
+   "fingerprint": "c9565e9bd987",
+   "human": false,
+   "rule": "ci-history.runs.unfinished-runs-excluded",
+   "source": "toilaudit/ingest.py#runs_from_objects",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_in_progress_runs_skipped",
+   "tests": [
+    "tests/test_toilaudit.py#test_in_progress_runs_skipped",
+    "tests/test_toilaudit.py#test_gitlab_derives_run_attempts_from_repeated_commits",
+    "tests/test_toilaudit.py#test_jenkins_derives_attempts_from_builds_of_one_commit",
+    "tests/test_fetch.py#test_api_and_export_agree_over_the_same_period"
+   ]
+  },
+  "ci-history.run-normalisation.002": {
+   "file": "specs/ci-history/run-normalisation/run-normalisation.feature",
+   "fingerprint": "9de69ac04cfc",
+   "human": false,
+   "rule": "ci-history.runs.duration-capped-at-six-hours",
+   "source": "toilaudit/ingest.py#Run",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "ci-history.run-normalisation.003": {
+   "file": "specs/ci-history/run-normalisation/run-normalisation.feature",
+   "fingerprint": "db2cd0b0898c",
+   "human": false,
+   "rule": "ci-history.runs.unmeasured-queue-time-is-zero",
+   "source": "toilaudit/ingest.py#_to_gitlab_run",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_gitlab_timings_and_missing_detail_fields",
+   "tests": [
+    "tests/test_toilaudit.py#test_gitlab_timings_and_missing_detail_fields",
+    "tests/test_toilaudit.py#test_jenkins_timings"
+   ]
+  },
+  "ci-history.run-normalisation.004": {
+   "file": "specs/ci-history/run-normalisation/run-normalisation.feature",
+   "fingerprint": "9de69ac04cfc",
+   "human": false,
+   "rule": "ci-history.runs.bot-actors-are-not-people",
+   "source": "toilaudit/ingest.py#Run",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_gitlab_vocabulary_maps_onto_the_detectors",
+   "tests": [
+    "tests/test_toilaudit.py#test_gitlab_vocabulary_maps_onto_the_detectors",
+    "tests/test_toilaudit.py#test_jenkins_vocabulary_maps_onto_the_detectors"
+   ]
+  },
+  "command-line.errors-exit-codes.001": {
+   "file": "specs/command-line/errors-exit-codes/audit-outcomes-and-exit-codes.feature",
+   "fingerprint": "88ff4124b712",
+   "human": false,
+   "rule": "command-line.errors.distinct-exit-code-per-failure",
+   "source": "toilaudit/__main__.py#EXIT_CODES",
+   "status": "verified",
+   "test": "tests/test_exit_codes.py#test_missing_export_file_is_noinput",
+   "tests": [
+    "tests/test_exit_codes.py#test_missing_export_file_is_noinput",
+    "tests/test_exit_codes.py#test_unparsable_export_is_dataerr",
+    "tests/test_exit_codes.py#test_missing_token_is_config",
+    "tests/test_exit_codes.py#test_rate_limit_is_unavailable"
+   ]
+  },
+  "command-line.errors-exit-codes.002": {
+   "file": "specs/command-line/errors-exit-codes/audit-outcomes-and-exit-codes.feature",
+   "fingerprint": "cd56909125ca",
+   "human": false,
+   "rule": "command-line.errors.empty-history-is-not-zero-toil",
+   "source": "toilaudit/__main__.py#main",
+   "status": "verified",
+   "test": "tests/test_exit_codes.py#test_export_with_no_runs_is_dataerr",
+   "tests": [
+    "tests/test_exit_codes.py#test_export_with_no_runs_is_dataerr"
+   ]
+  },
+  "command-line.errors-exit-codes.003": {
+   "file": "specs/command-line/errors-exit-codes/audit-outcomes-and-exit-codes.feature",
+   "fingerprint": "cd56909125ca",
+   "human": false,
+   "rule": "command-line.output.report-to-stdout-or-file",
+   "source": "toilaudit/__main__.py#main",
+   "status": "verified",
+   "test": "tests/test_compare.py#test_a_clean_last_month_is_the_headline_and_in_the_trend",
+   "tests": [
+    "tests/test_compare.py#test_a_clean_last_month_is_the_headline_and_in_the_trend"
+   ]
+  },
+  "command-line.input-selection.001": {
+   "file": "specs/command-line/input-selection/choosing-what-to-audit.feature",
+   "fingerprint": "cd56909125ca",
+   "human": false,
+   "rule": "command-line.input.exactly-one-source",
+   "source": "toilaudit/__main__.py#main",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "command-line.input-selection.002": {
+   "file": "specs/command-line/input-selection/choosing-what-to-audit.feature",
+   "fingerprint": "cd56909125ca",
+   "human": false,
+   "rule": "command-line.input.fix-hours-must-price-a-change",
+   "source": "toilaudit/__main__.py#main",
+   "status": "verified",
+   "test": "tests/test_compare.py#test_fix_hours_without_a_change_is_refused",
+   "tests": [
+    "tests/test_compare.py#test_fix_hours_without_a_change_is_refused",
+    "tests/test_compare.py#test_fix_hours_that_are_not_a_finite_cost_are_refused"
+   ]
+  },
+  "cost-model.cost-summary.001": {
+   "file": "specs/cost-model/cost-summary/rolling-up-toil-cost.feature",
+   "fingerprint": "02b5a015c1d1",
+   "human": false,
+   "rule": "cost-model.cost-summary.detected-versus-charged-events",
+   "source": "toilaudit/costing.py#summarize_costs",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "cost-model.cost-summary.002": {
+   "file": "specs/cost-model/cost-summary/rolling-up-toil-cost.feature",
+   "fingerprint": "02b5a015c1d1",
+   "human": false,
+   "rule": "cost-model.cost-summary.workflow-cost-per-repository",
+   "source": "toilaudit/costing.py#summarize_costs",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_same_workflow_in_two_repos_bills_separately",
+   "tests": [
+    "tests/test_toilaudit.py#test_same_workflow_in_two_repos_bills_separately",
+    "tests/test_toilaudit.py#test_workflow_attribution_sorted_desc"
+   ]
+  },
+  "cost-model.cost-summary.003": {
+   "file": "specs/cost-model/cost-summary/rolling-up-toil-cost.feature",
+   "fingerprint": "02b5a015c1d1",
+   "human": false,
+   "rule": "cost-model.cost-summary.shared-template-summed-across-repos",
+   "source": "toilaudit/costing.py#summarize_costs",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_shared_workflow_file_is_summed_across_repos",
+   "tests": [
+    "tests/test_toilaudit.py#test_shared_workflow_file_is_summed_across_repos"
+   ]
+  },
+  "cost-model.cost-summary.004": {
+   "file": "specs/cost-model/cost-summary/rolling-up-toil-cost.feature",
+   "fingerprint": "02b5a015c1d1",
+   "human": false,
+   "rule": "cost-model.cost-summary.cost-by-month-of-run",
+   "source": "toilaudit/costing.py#summarize_costs",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "cost-model.engineer-rate.001": {
+   "file": "specs/cost-model/engineer-rate/pricing-toil-in-euros.feature",
+   "fingerprint": "02b5a015c1d1",
+   "human": false,
+   "rule": "cost-model.engineer-rate.minutes-priced-at-hourly-rate",
+   "source": "toilaudit/costing.py#summarize_costs",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_euro_math",
+   "tests": [
+    "tests/test_toilaudit.py#test_euro_math"
+   ]
+  },
+  "cost-model.engineer-rate.002": {
+   "file": "specs/cost-model/engineer-rate/pricing-toil-in-euros.feature",
+   "fingerprint": "02b5a015c1d1",
+   "human": false,
+   "rule": "cost-model.runner-cost.wasted-minutes-priced-per-minute",
+   "source": "toilaudit/costing.py#summarize_costs",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_euro_math",
+   "tests": [
+    "tests/test_toilaudit.py#test_euro_math"
+   ]
+  },
+  "cost-model.engineer-rate.003": {
+   "file": "specs/cost-model/engineer-rate/pricing-toil-in-euros.feature",
+   "fingerprint": "02b5a015c1d1",
+   "human": false,
+   "rule": "cost-model.cost-summary.total-is-engineer-plus-compute",
+   "source": "toilaudit/costing.py#summarize_costs",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_euro_math",
+   "tests": [
+    "tests/test_toilaudit.py#test_euro_math"
+   ]
+  },
+  "flaky-attribution.failure-parsing.002": {
+   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection.feature",
+   "fingerprint": "c5f60afe233e",
+   "human": false,
+   "rule": "flaky-attribution.failure-parsing.recognised-runner-formats",
+   "source": "toilaudit/attribute.py#failing_tests",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.failure-parsing.007": {
+   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection-patterns.feature",
+   "fingerprint": "bdb489839db0",
+   "human": false,
+   "rule": "flaky-attribution.failure-parsing.timestamped-log-lines",
+   "source": "toilaudit/patterns.py#PATTERNS",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.failure-parsing.008": {
+   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection-patterns.feature",
+   "fingerprint": "bdb489839db0",
+   "human": false,
+   "rule": "flaky-attribution.failure-parsing.passing-output-names-nothing",
+   "source": "toilaudit/patterns.py#PATTERNS",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.failure-parsing.009": {
+   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection-patterns.feature",
+   "fingerprint": "bdb489839db0",
+   "human": false,
+   "rule": "flaky-attribution.failure-parsing.only-failing-junit-cases",
+   "source": "toilaudit/patterns.py#PATTERNS",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.failure-parsing.010": {
+   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection-patterns.feature",
+   "fingerprint": "7a897f20a8ef",
+   "human": false,
+   "rule": "flaky-attribution.failure-parsing.foreign-tests-ignored",
+   "source": "toilaudit/patterns.py#SUSPICIOUS",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.failure-parsing.011": {
+   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection-patterns.feature",
+   "fingerprint": "ae27e13c2aba",
+   "human": false,
+   "rule": "flaky-attribution.failure-parsing.go-failures-by-file",
+   "source": "toilaudit/patterns.py#GO_FAIL",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.failure-parsing.012": {
+   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection-patterns.feature",
+   "fingerprint": "bdb489839db0",
+   "human": false,
+   "rule": "flaky-attribution.failure-parsing.failure-message-never-reported",
+   "source": "toilaudit/patterns.py#PATTERNS",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.failure-parsing.013": {
+   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection-patterns.feature",
+   "fingerprint": "bdb489839db0",
+   "human": false,
+   "rule": "flaky-attribution.failure-parsing.jest-failure-counted-twice",
+   "source": "toilaudit/patterns.py#PATTERNS",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.log-sources.001": {
+   "file": "specs/flaky-attribution/log-sources/flaky-log-sources.feature",
+   "fingerprint": "29fc3d6bd5f7",
+   "human": false,
+   "rule": "flaky-attribution.logs.read-from-directory-by-run-id",
+   "source": "toilaudit/__main__.py#_read_log",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.offender-ranking.001": {
+   "file": "specs/flaky-attribution/offender-ranking/flaky-cost-by-test-file.feature",
+   "fingerprint": "be4802a0baf2",
+   "human": false,
+   "rule": "flaky-attribution.offender-ranking.partitions-the-flaky-total",
+   "source": "toilaudit/attribute.py#attribute",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.offender-ranking.002": {
+   "file": "specs/flaky-attribution/offender-ranking/flaky-cost-by-test-file.feature",
+   "fingerprint": "be4802a0baf2",
+   "human": false,
+   "rule": "flaky-attribution.offender-ranking.even-split-across-failing-tests",
+   "source": "toilaudit/attribute.py#attribute",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.offender-ranking.003": {
+   "file": "specs/flaky-attribution/offender-ranking/flaky-cost-by-test-file.feature",
+   "fingerprint": "be4802a0baf2",
+   "human": false,
+   "rule": "flaky-attribution.offender-ranking.unreadable-log-is-unattributed",
+   "source": "toilaudit/attribute.py#attribute",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.offender-ranking.004": {
+   "file": "specs/flaky-attribution/offender-ranking/flaky-cost-by-test-file.feature",
+   "fingerprint": "1a4aa25ddae7",
+   "human": false,
+   "rule": "flaky-attribution.log-sources.zip-reads-every-step",
+   "source": "toilaudit/attribute.py#logs_from_zip",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.offender-ranking.005": {
+   "file": "specs/flaky-attribution/offender-ranking/flaky-cost-by-test-file.feature",
+   "fingerprint": "b4797206aa3f",
+   "human": false,
+   "rule": "flaky-attribution.offender-ranking.top-files-ranked-by-cost",
+   "source": "toilaudit/attribute.py#summarise",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.offender-ranking.006": {
+   "file": "specs/flaky-attribution/offender-ranking/flaky-cost-by-test-file.feature",
+   "fingerprint": "b4797206aa3f",
+   "human": false,
+   "rule": "flaky-attribution.offender-ranking.unattributed-share-declared",
+   "source": "toilaudit/attribute.py#summarise",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "flaky-attribution.offender-ranking.007": {
+   "file": "specs/flaky-attribution/offender-ranking/flaky-cost-by-test-file.feature",
+   "fingerprint": "b4797206aa3f",
+   "human": false,
+   "rule": "flaky-attribution.offender-ranking.none-detected-message",
+   "source": "toilaudit/attribute.py#summarise",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "toil-detection.failure-triage.001": {
+   "file": "specs/toil-detection/failure-triage/failure-triage.feature",
+   "fingerprint": "0915ad455c27",
+   "human": false,
+   "rule": "toil.triage.once-per-broken-commit",
+   "source": "toilaudit/signals.py#detect_signals",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_one_broken_commit_is_triaged_once",
+   "tests": [
+    "tests/test_toilaudit.py#test_one_broken_commit_is_triaged_once"
+   ]
+  },
+  "toil-detection.failure-triage.002": {
+   "file": "specs/toil-detection/failure-triage/failure-triage.feature",
+   "fingerprint": "e82d2157cb4d",
+   "human": false,
+   "rule": "toil.triage.priced-from-next-push",
+   "source": "toilaudit/signals.py#_triage_minutes",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_fast_fix_bills_the_observed_gap_not_the_estimate",
+   "tests": [
+    "tests/test_toilaudit.py#test_fast_fix_bills_the_observed_gap_not_the_estimate",
+    "tests/test_toilaudit.py#test_slow_fix_is_capped_at_the_estimate"
+   ]
+  },
+  "toil-detection.failure-triage.003": {
+   "file": "specs/toil-detection/failure-triage/failure-triage.feature",
+   "fingerprint": "e82d2157cb4d",
+   "human": false,
+   "rule": "toil.triage.unfixed-or-bot-fixed-is-a-glance",
+   "source": "toilaudit/signals.py#_triage_minutes",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_never_fixed_means_nobody_triaged_it",
+   "tests": [
+    "tests/test_toilaudit.py#test_never_fixed_means_nobody_triaged_it",
+    "tests/test_toilaudit.py#test_bot_pushing_over_its_own_branch_is_not_triage",
+    "tests/test_toilaudit.py#test_jenkins_push_actor_is_the_change_author"
+   ]
+  },
+  "toil-detection.flaky-recoveries.001": {
+   "file": "specs/toil-detection/flaky-recoveries/flaky-recoveries.feature",
+   "fingerprint": "0915ad455c27",
+   "human": false,
+   "rule": "toil.flaky.red-then-green-same-commit",
+   "source": "toilaudit/signals.py#detect_signals",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_flaky_recovery_same_sha",
+   "tests": [
+    "tests/test_toilaudit.py#test_flaky_recovery_same_sha"
+   ]
+  },
+  "toil-detection.flaky-recoveries.002": {
+   "file": "specs/toil-detection/flaky-recoveries/flaky-recoveries.feature",
+   "fingerprint": "0915ad455c27",
+   "human": false,
+   "rule": "toil.flaky.new-commit-fix-is-not-flaky",
+   "source": "toilaudit/signals.py#detect_signals",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_new_commit_fix_is_not_flaky",
+   "tests": [
+    "tests/test_toilaudit.py#test_new_commit_fix_is_not_flaky"
+   ]
+  },
+  "toil-detection.flaky-recoveries.003": {
+   "file": "specs/toil-detection/flaky-recoveries/flaky-recoveries.feature",
+   "fingerprint": "0915ad455c27",
+   "human": false,
+   "rule": "toil.flaky.no-commit-identity-never-correlated",
+   "source": "toilaudit/signals.py#detect_signals",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_failures_without_a_sha_are_not_correlated",
+   "tests": [
+    "tests/test_toilaudit.py#test_failures_without_a_sha_are_not_correlated"
+   ]
+  },
+  "toil-detection.manual-triggers.001": {
+   "file": "specs/toil-detection/manual-triggers/manual-triggers-approvals.feature",
+   "fingerprint": "0915ad455c27",
+   "human": false,
+   "rule": "toil.manual.hand-dispatched-run",
+   "source": "toilaudit/signals.py#detect_signals",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_manual_dispatch_and_queue_stall",
+   "tests": [
+    "tests/test_toilaudit.py#test_manual_dispatch_and_queue_stall",
+    "tests/test_toilaudit.py#test_approval_gate_is_toil"
+   ]
+  },
+  "toil-detection.queue-stalls.001": {
+   "file": "specs/toil-detection/queue-stalls/queue-stalls.feature",
+   "fingerprint": "0915ad455c27",
+   "human": false,
+   "rule": "toil.queue.stall-over-threshold",
+   "source": "toilaudit/signals.py#detect_signals",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_manual_dispatch_and_queue_stall",
+   "tests": [
+    "tests/test_toilaudit.py#test_manual_dispatch_and_queue_stall"
+   ]
+  },
+  "toil-detection.reruns.001": {
+   "file": "specs/toil-detection/reruns/rerun-toil.feature",
+   "fingerprint": "0915ad455c27",
+   "human": false,
+   "rule": "toil.reruns.charged-with-wasted-compute",
+   "source": "toilaudit/signals.py#detect_signals",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_rerun_detected_with_wasted_compute",
+   "tests": [
+    "tests/test_toilaudit.py#test_rerun_detected_with_wasted_compute",
+    "tests/test_toilaudit.py#test_euro_math"
+   ]
+  },
+  "toil-detection.reruns.002": {
+   "file": "specs/toil-detection/reruns/rerun-toil.feature",
+   "fingerprint": "0915ad455c27",
+   "human": false,
+   "rule": "toil.signals.clean-history-is-toil-free",
+   "source": "toilaudit/signals.py#detect_signals",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_green_history_is_toil_free",
+   "tests": [
+    "tests/test_toilaudit.py#test_green_history_is_toil_free"
+   ]
+  },
+  "toil-detection.template-fanout.001": {
+   "file": "specs/toil-detection/template-fanout/template-fanout.feature",
+   "fingerprint": "08cd84bf88f4",
+   "human": false,
+   "rule": "toil.fanout.diagnosed-once-across-repos",
+   "source": "toilaudit/signals.py#_fanout_followers",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_one_fix_pushed_to_many_repos_is_diagnosed_once",
+   "tests": [
+    "tests/test_toilaudit.py#test_one_fix_pushed_to_many_repos_is_diagnosed_once"
+   ]
+  },
+  "toil-detection.template-fanout.002": {
+   "file": "specs/toil-detection/template-fanout/template-fanout.feature",
+   "fingerprint": "08cd84bf88f4",
+   "human": false,
+   "rule": "toil.fanout.needs-same-fix-in-enough-repos",
+   "source": "toilaudit/signals.py#_fanout_followers",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_unrelated_failures_are_not_fanout",
+   "tests": [
+    "tests/test_toilaudit.py#test_unrelated_failures_are_not_fanout"
+   ]
+  },
+  "toil-detection.template-fanout.003": {
+   "file": "specs/toil-detection/template-fanout/template-fanout.feature",
+   "fingerprint": "08cd84bf88f4",
+   "human": false,
+   "rule": "toil.fanout.requires-commit-identity",
+   "source": "toilaudit/signals.py#_fanout_followers",
+   "status": "verified",
+   "test": "tests/test_toilaudit.py#test_failures_without_a_sha_are_never_fanout_copies",
+   "tests": [
+    "tests/test_toilaudit.py#test_failures_without_a_sha_are_never_fanout_copies"
+   ]
+  }
+ },
+ "taxonomy": {
+  "domains": [
+   {
+    "areas": [
+     {
+      "description": "Pulls workflow runs for a repository from the GitHub API, filtered by start date, with a token taken from the environment.",
+      "slug": "github-fetch",
+      "title": "GitHub live fetch"
+     },
+     {
+      "description": "Caches fetched pages on disk so re-analysis does not re-fetch, and waits out API rate limits.",
+      "slug": "fetch-cache",
+      "title": "Fetch cache and rate limits"
+     },
+     {
+      "description": "Reads paginated GitHub Actions workflow-run exports into runs.",
+      "slug": "github-exports",
+      "title": "GitHub exports"
+     },
+     {
+      "description": "Reads GitLab pipeline exports and maps their statuses, triggers and retries onto runs.",
+      "slug": "gitlab-exports",
+      "title": "GitLab exports"
+     },
+     {
+      "description": "Reads Jenkins build exports, recovering the repository, branch, commit, trigger cause, queue time and attempt number.",
+      "slug": "jenkins-exports",
+      "title": "Jenkins exports"
+     },
+     {
+      "description": "Turns every provider's data into one run record and drops impossible or incomplete runs, such as ones longer than the maximum duration.",
+      "slug": "run-normalisation",
+      "title": "Run normalisation"
+     }
+    ],
+    "description": "Getting pipeline run history into the audit, either pulled live or read from a provider export.",
+    "slug": "ci-history",
+    "title": "CI history import"
+   },
+   {
+    "areas": [
+     {
+      "description": "Counts runs that someone re-ran by hand and then waited on.",
+      "slug": "reruns",
+      "title": "Reruns"
+     },
+     {
+      "description": "Detects a commit that fails and then passes with no new commit in between, which is the flaky-test babysitting loop.",
+      "slug": "flaky-recoveries",
+      "title": "Flaky recoveries"
+     },
+     {
+      "description": "Flags hand-dispatched runs and runs parked until someone approves them.",
+      "slug": "manual-triggers",
+      "title": "Manual triggers and approvals"
+     },
+     {
+      "description": "Flags runs that sat in the queue longer than the stall threshold.",
+      "slug": "queue-stalls",
+      "title": "Queue stalls"
+     },
+     {
+      "description": "Charges each broken commit once, priced from the time until the next push on that branch, with a minimum charge for a glance.",
+      "slug": "failure-triage",
+      "title": "Failure triage"
+     },
+     {
+      "description": "Recognises one fix pushed to many repositories as a single diagnosis plus a small application cost per repository.",
+      "slug": "template-fanout",
+      "title": "Shared-template fan-out"
+     }
+    ],
+    "description": "Finds the moments in run history where a person had to touch or wait on the pipeline.",
+    "slug": "toil-detection",
+    "title": "Toil detection"
+   },
+   {
+    "areas": [
+     {
+      "description": "Prices engineer minutes at a configurable loaded hourly rate.",
+      "slug": "engineer-rate",
+      "title": "Engineer rate"
+     },
+     {
+      "description": "Prices compute minutes spent on wasted runs at a configurable per-minute runner rate.",
+      "slug": "runner-cost",
+      "title": "Runner cost"
+     },
+     {
+      "description": "Sets the default engineer minutes charged for each kind of toil signal.",
+      "slug": "signal-minutes",
+      "title": "Per-signal time estimates"
+     },
+     {
+      "description": "Rolls costs up by signal, by workflow template and by month into one summary.",
+      "slug": "cost-summary",
+      "title": "Cost summary"
+     }
+    ],
+    "description": "Turns detected toil and runner usage into euros, with every input visible and overridable.",
+    "slug": "cost-model",
+    "title": "Cost model"
+   },
+   {
+    "areas": [
+     {
+      "description": "Finds the failing tests in a log using the known test-runner output patterns, including Go tests.",
+      "slug": "failure-parsing",
+      "title": "Failing-test detection"
+     },
+     {
+      "description": "Reads each failed run's log from a directory, as plain text or as the zip archive the API serves.",
+      "slug": "log-sources",
+      "title": "Log sources"
+     },
+     {
+      "description": "Groups flaky cost by test and test file and lists the most expensive ones, without quoting log content.",
+      "slug": "offender-ranking",
+      "title": "Top offenders"
+     }
+    ],
+    "description": "Names the tests and test files behind flaky recoveries, using the failed runs' logs.",
+    "slug": "flaky-attribution",
+    "title": "Flaky test attribution"
+   },
+   {
+    "areas": [
+     {
+      "description": "Places the before/after split at a given date or at the first run of a given commit, never at a guessed point.",
+      "slug": "change-boundary",
+      "title": "Change boundary"
+     },
+     {
+      "description": "Compares cost over the complete months on each side of the change.",
+      "slug": "before-after",
+      "title": "Before and after comparison"
+     },
+     {
+      "description": "Prices the hours a fix took and states its payback from the measured savings.",
+      "slug": "fix-roi",
+      "title": "Fix return on investment"
+     }
+    ],
+    "description": "Shows whether a fix actually cut toil cost.",
+    "slug": "change-impact",
+    "title": "Change impact"
+   },
+   {
+    "areas": [
+     {
+      "description": "Gives the headline monthly cost and its equivalent in engineer-months.",
+      "slug": "bottom-line",
+      "title": "Bottom line"
+     },
+     {
+      "description": "Tabulates cost per signal and per workflow template, showing the inputs behind each figure.",
+      "slug": "cost-breakdown",
+      "title": "Cost breakdown"
+     },
+     {
+      "description": "Shows cost over complete calendar months only, leaving out partial months.",
+      "slug": "monthly-trend",
+      "title": "Monthly trend"
+     },
+     {
+      "description": "Estimates the hours engineers actually spent at the keyboard by grouping their activity into sessions.",
+      "slug": "keyboard-time",
+      "title": "Hands-on time"
+     }
+    ],
+    "description": "The Markdown report that presents the euro figure and how it was reached.",
+    "slug": "audit-report",
+    "title": "Audit report"
+   },
+   {
+    "areas": [
+     {
+      "description": "Chooses between an export file with a named provider and a live repository fetch, and rejects conflicting or invalid options.",
+      "slug": "input-selection",
+      "title": "Input selection"
+     },
+     {
+      "description": "Writes the report to standard output or to a file.",
+      "slug": "report-output",
+      "title": "Report output"
+     },
+     {
+      "description": "Reports problems such as a missing token, rate limiting or an empty export with clear messages and distinct exit codes, never a false zero-cost result.",
+      "slug": "errors-exit-codes",
+      "title": "Errors and exit codes"
+     }
+    ],
+    "description": "How a user runs an audit and gets its result.",
+    "slug": "command-line",
+    "title": "Command line"
+   },
+   {
+    "areas": [
+     {
+      "description": "Lists the available commands, installs development dependencies and hooks, runs the analyser, and declares install and build as no-ops.",
+      "slug": "setup-run",
+      "title": "Setup and running"
+     },
+     {
+      "description": "Runs the tests, the full pre-commit lint gate and the formatter.",
+      "slug": "quality-gate",
+      "title": "Quality gate"
+     },
+     {
+      "description": "Scans the tree for vulnerabilities, misconfiguration and secrets the same way CI does.",
+      "slug": "security-scan",
+      "title": "Security scanning"
+     },
+     {
+      "description": "Deletes the local fetch cache.",
+      "slug": "housekeeping",
+      "title": "Housekeeping"
+     }
+    ],
+    "description": "The make commands contributors use to set up, check and run the project.",
+    "slug": "developer-tooling",
+    "title": "Developer tooling"
+   }
+  ]
+ }
+}
