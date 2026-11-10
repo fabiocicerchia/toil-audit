@@ -16,10 +16,3 @@ Feature: Reading GitHub Actions exports
       | github   | 2                                             | 2    |
       | gitlab   | 2                                             | 3    |
       | jenkins  | 2 (one listing allBuilds, one listing builds) | 2    |
-
-  @id:ci-history.github-exports.002 @rule:ci-history.github.export-and-fetch-agree @verified @source:toilaudit/ingest.py#runs_from_objects @test:tests/test_fetch.py#test_api_and_export_agree_over_the_same_period
-  Scenario: A saved export and a live fetch of the same runs give the same audit input
-    Given the same four GitHub runs, one of them still in progress, are both exported to a file and available from the GitHub API
-    When the operator analyses the export, and separately analyses the repository live
-    Then both analyses see the same three finished runs with identical details
-    And neither analysis counts the run still in progress

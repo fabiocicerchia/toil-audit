@@ -17,11 +17,3 @@ Feature: Reading failed-run logs for flaky attribution
       | 4242.txt |
       | 4242.log |
       | 4242.zip |
-
-  @id:flaky-attribution.log-sources.002 @rule:flaky-attribution.logs.missing-log-is-unattributed @inferred @source:toilaudit/__main__.py#_read_log
-  Scenario: A failed run with no log in the directory is counted as unattributed, not as a failed audit
-    Given the log directory "logs" has no log for failed run 4242
-    When the operator runs toil-audit on the export with --attribute-logs logs
-    Then the flaky recovery of run 4242 is counted in the unattributed share
-    And the euro total is unchanged
-    And the exit status is 0

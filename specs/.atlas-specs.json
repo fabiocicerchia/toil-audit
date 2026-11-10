@@ -120,7 +120,7 @@
     "source": "toilaudit/compare.py#resolve_boundary"
    },
    {
-    "candidate": "Month series walks calendar months including December\u2192January rollover",
+    "candidate": "Month series walks calendar months including December→January rollover",
     "covered_by": "",
     "reason": "INTERNAL_MECHANISM",
     "source": "toilaudit/compare.py#month_series"
@@ -346,7 +346,7 @@
     "source": "toilaudit/report.py#build_report"
    },
    {
-    "candidate": "Window label wording ('2026-01 \u2192 2026-03, 3 months')",
+    "candidate": "Window label wording ('2026-01 → 2026-03, 3 months')",
     "covered_by": "change-impact.before-after.monthly-verdict",
     "reason": "DUPLICATE_OF",
     "source": "toilaudit/report.py#_window_label"
@@ -468,7 +468,26 @@
   "toilaudit/signals": [],
   "toilaudit/toilaudit": []
  },
- "retired": [],
+ "retired": [
+  "change-impact.before-after.005",
+  "change-impact.before-after.006",
+  "change-impact.fix-roi.001",
+  "change-impact.fix-roi.002",
+  "change-impact.fix-roi.003",
+  "change-impact.fix-roi.004",
+  "change-impact.fix-roi.005",
+  "ci-history.github-exports.002",
+  "command-line.input-selection.003",
+  "command-line.input-selection.004",
+  "cost-model.signal-minutes.001",
+  "flaky-attribution.failure-parsing.001",
+  "flaky-attribution.failure-parsing.003",
+  "flaky-attribution.failure-parsing.004",
+  "flaky-attribution.failure-parsing.005",
+  "flaky-attribution.failure-parsing.006",
+  "flaky-attribution.log-sources.002",
+  "toil-detection.manual-triggers.002"
+ ],
  "scenarios": {
   "audit-report.bottom-line.001": {
    "file": "specs/audit-report/bottom-line/monthly-toil-headline.feature",
@@ -614,31 +633,8 @@
     "tests/test_compare.py#test_a_boundary_with_nothing_complete_on_one_side_is_not_comparable"
    ]
   },
-  "change-impact.before-after.005": {
-   "file": "specs/change-impact/before-after/change-before-after.feature",
-   "fingerprint": "f6e6eb353201",
-   "human": false,
-   "rule": "change-impact.before-after.monthly-verdict",
-   "source": "toilaudit/report.py#_before_after",
-   "status": "verified",
-   "test": "tests/test_compare.py#test_the_report_states_an_increase",
-   "tests": [
-    "tests/test_compare.py#test_the_report_states_an_increase",
-    "tests/test_compare.py#test_the_report_states_a_saving_and_its_roi"
-   ]
-  },
-  "change-impact.before-after.006": {
-   "file": "specs/change-impact/before-after/change-before-after.feature",
-   "fingerprint": "f6e6eb353201",
-   "human": false,
-   "rule": "change-impact.before-after.no-comparison-without-complete-months",
-   "source": "toilaudit/report.py#_before_after",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
   "change-impact.before-after.007": {
-   "file": "specs/change-impact/before-after/change-before-after.feature",
+   "file": "specs/change-impact/fix-roi/fix-roi.feature",
    "fingerprint": "f6e6eb353201",
    "human": false,
    "rule": "change-impact.fix-roi.payback-statement",
@@ -676,73 +672,6 @@
     "tests/test_compare.py#test_boundary_by_date_or_by_the_commit_a_fix_landed_in",
     "tests/test_compare.py#test_a_sha_prefix_matching_two_commits_is_refused",
     "tests/test_compare.py#test_an_unknown_commit_is_refused_rather_than_guessed"
-   ]
-  },
-  "change-impact.fix-roi.001": {
-   "file": "specs/change-impact/fix-roi/fix-roi.feature",
-   "fingerprint": "2c52265c27c5",
-   "human": false,
-   "rule": "change-impact.fix-roi.payback-and-net-return",
-   "source": "toilaudit/compare.py#Comparison",
-   "status": "verified",
-   "test": "tests/test_compare.py#test_a_saving_and_its_roi",
-   "tests": [
-    "tests/test_compare.py#test_a_saving_and_its_roi",
-    "tests/test_compare.py#test_what_a_fix_returned_counts_the_months_after_it_only",
-    "tests/test_compare.py#test_the_report_states_a_saving_and_its_roi",
-    "tests/test_compare.py#test_the_report_states_what_the_fix_has_netted_so_far"
-   ]
-  },
-  "change-impact.fix-roi.002": {
-   "file": "specs/change-impact/fix-roi/fix-roi.feature",
-   "fingerprint": "2c52265c27c5",
-   "human": false,
-   "rule": "change-impact.fix-roi.no-saving-never-pays-back",
-   "source": "toilaudit/compare.py#Comparison",
-   "status": "verified",
-   "test": "tests/test_compare.py#test_toil_that_went_up_is_reported_as_a_loss",
-   "tests": [
-    "tests/test_compare.py#test_toil_that_went_up_is_reported_as_a_loss",
-    "tests/test_compare.py#test_no_change_in_toil_never_pays_back_rather_than_dividing_by_zero",
-    "tests/test_compare.py#test_the_report_states_an_increase"
-   ]
-  },
-  "change-impact.fix-roi.003": {
-   "file": "specs/change-impact/fix-roi/fix-roi.feature",
-   "fingerprint": "f6e6eb353201",
-   "human": false,
-   "rule": "change-impact.fix-roi.zero-cost-fix-owes-nothing",
-   "source": "toilaudit/report.py#_before_after",
-   "status": "verified",
-   "test": "tests/test_compare.py#test_a_fix_that_cost_nothing_is_not_reported_as_unpaid",
-   "tests": [
-    "tests/test_compare.py#test_a_fix_that_cost_nothing_is_not_reported_as_unpaid"
-   ]
-  },
-  "change-impact.fix-roi.004": {
-   "file": "specs/change-impact/fix-roi/fix-roi.feature",
-   "fingerprint": "6c2d5cbfd08d",
-   "human": false,
-   "rule": "change-impact.fix-roi.no-hours-no-roi",
-   "source": "toilaudit/compare.py#compare",
-   "status": "verified",
-   "test": "tests/test_compare.py#test_no_fix_hours_means_no_roi",
-   "tests": [
-    "tests/test_compare.py#test_no_fix_hours_means_no_roi",
-    "tests/test_compare.py#test_without_fix_hours_the_roi_is_left_out_and_says_so"
-   ]
-  },
-  "change-impact.fix-roi.005": {
-   "file": "specs/change-impact/fix-roi/fix-roi.feature",
-   "fingerprint": "cd56909125ca",
-   "human": false,
-   "rule": "change-impact.fix-roi.invalid-fix-hours-refused",
-   "source": "toilaudit/__main__.py#main",
-   "status": "verified",
-   "test": "tests/test_compare.py#test_fix_hours_without_a_change_is_refused",
-   "tests": [
-    "tests/test_compare.py#test_fix_hours_without_a_change_is_refused",
-    "tests/test_compare.py#test_fix_hours_that_are_not_a_finite_cost_are_refused"
    ]
   },
   "ci-history.fetch-cache.001": {
@@ -807,18 +736,6 @@
     "tests/test_toilaudit.py#test_gitlab_accepts_concatenated_pages",
     "tests/test_toilaudit.py#test_jenkins_concatenated_job_documents_are_one_export",
     "tests/test_toilaudit.py#test_jenkins_builds_key_is_accepted_as_well_as_allbuilds"
-   ]
-  },
-  "ci-history.github-exports.002": {
-   "file": "specs/ci-history/github-exports/github-actions-exports.feature",
-   "fingerprint": "c9565e9bd987",
-   "human": false,
-   "rule": "ci-history.github.export-and-fetch-agree",
-   "source": "toilaudit/ingest.py#runs_from_objects",
-   "status": "verified",
-   "test": "tests/test_fetch.py#test_api_and_export_agree_over_the_same_period",
-   "tests": [
-    "tests/test_fetch.py#test_api_and_export_agree_over_the_same_period"
    ]
   },
   "ci-history.github-fetch.001": {
@@ -1159,28 +1076,6 @@
     "tests/test_compare.py#test_fix_hours_that_are_not_a_finite_cost_are_refused"
    ]
   },
-  "command-line.input-selection.003": {
-   "file": "specs/command-line/input-selection/choosing-what-to-audit.feature",
-   "fingerprint": "cd56909125ca",
-   "human": false,
-   "rule": "command-line.input.unknown-change-is-refused",
-   "source": "toilaudit/__main__.py#main",
-   "status": "verified",
-   "test": "tests/test_compare.py#test_an_unknown_commit_is_refused_rather_than_guessed",
-   "tests": [
-    "tests/test_compare.py#test_an_unknown_commit_is_refused_rather_than_guessed"
-   ]
-  },
-  "command-line.input-selection.004": {
-   "file": "specs/command-line/input-selection/choosing-what-to-audit.feature",
-   "fingerprint": "24d5ceb4b5a9",
-   "human": false,
-   "rule": "cost-model.rates.overridable-with-defaults",
-   "source": "toilaudit/__main__.py#_build_parser",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
   "cost-model.cost-summary.001": {
    "file": "specs/cost-model/cost-summary/rolling-up-toil-cost.feature",
    "fingerprint": "02b5a015c1d1",
@@ -1262,76 +1157,12 @@
     "tests/test_toilaudit.py#test_euro_math"
    ]
   },
-  "cost-model.signal-minutes.001": {
-   "file": "specs/cost-model/signal-minutes/signal-minute-estimates.feature",
-   "fingerprint": "532661c5b3d1",
-   "human": false,
-   "rule": "cost.signal-minutes.defaults",
-   "source": "toilaudit/signals.py#DEFAULT_MINUTES",
-   "status": "verified",
-   "test": "tests/test_toilaudit.py#test_rerun_detected_with_wasted_compute",
-   "tests": [
-    "tests/test_toilaudit.py#test_rerun_detected_with_wasted_compute",
-    "tests/test_toilaudit.py#test_approval_gate_is_toil",
-    "tests/test_toilaudit.py#test_slow_fix_is_capped_at_the_estimate"
-   ]
-  },
-  "flaky-attribution.failure-parsing.001": {
-   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection.feature",
-   "fingerprint": "c5f60afe233e",
-   "human": false,
-   "rule": "flaky-attribution.failure-parsing.log-content-never-reported",
-   "source": "toilaudit/attribute.py#failing_tests",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
   "flaky-attribution.failure-parsing.002": {
    "file": "specs/flaky-attribution/failure-parsing/failing-test-detection.feature",
    "fingerprint": "c5f60afe233e",
    "human": false,
    "rule": "flaky-attribution.failure-parsing.recognised-runner-formats",
    "source": "toilaudit/attribute.py#failing_tests",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "flaky-attribution.failure-parsing.003": {
-   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection.feature",
-   "fingerprint": "901883c392c6",
-   "human": false,
-   "rule": "flaky-attribution.failure-parsing.go-failure-names-test-files",
-   "source": "toilaudit/attribute.py#_go_failures",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "flaky-attribution.failure-parsing.004": {
-   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection.feature",
-   "fingerprint": "c5f60afe233e",
-   "human": false,
-   "rule": "flaky-attribution.failure-parsing.outside-repo-tests-ignored",
-   "source": "toilaudit/attribute.py#failing_tests",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "flaky-attribution.failure-parsing.005": {
-   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection.feature",
-   "fingerprint": "c5f60afe233e",
-   "human": false,
-   "rule": "flaky-attribution.failure-parsing.plain-error-words-ignored",
-   "source": "toilaudit/attribute.py#failing_tests",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "flaky-attribution.failure-parsing.006": {
-   "file": "specs/flaky-attribution/failure-parsing/failing-test-detection-patterns.feature",
-   "fingerprint": "bdb489839db0",
-   "human": false,
-   "rule": "flaky-attribution.failure-parsing.recognised-test-runners",
-   "source": "toilaudit/patterns.py#PATTERNS",
    "status": "inferred",
    "test": "",
    "tests": []
@@ -1411,16 +1242,6 @@
    "fingerprint": "29fc3d6bd5f7",
    "human": false,
    "rule": "flaky-attribution.logs.read-from-directory-by-run-id",
-   "source": "toilaudit/__main__.py#_read_log",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "flaky-attribution.log-sources.002": {
-   "file": "specs/flaky-attribution/log-sources/flaky-log-sources.feature",
-   "fingerprint": "29fc3d6bd5f7",
-   "human": false,
-   "rule": "flaky-attribution.logs.missing-log-is-unattributed",
    "source": "toilaudit/__main__.py#_read_log",
    "status": "inferred",
    "test": "",
@@ -1580,18 +1401,7 @@
    "status": "verified",
    "test": "tests/test_toilaudit.py#test_manual_dispatch_and_queue_stall",
    "tests": [
-    "tests/test_toilaudit.py#test_manual_dispatch_and_queue_stall"
-   ]
-  },
-  "toil-detection.manual-triggers.002": {
-   "file": "specs/toil-detection/manual-triggers/manual-triggers-approvals.feature",
-   "fingerprint": "0915ad455c27",
-   "human": false,
-   "rule": "toil.manual.parked-for-approval",
-   "source": "toilaudit/signals.py#detect_signals",
-   "status": "verified",
-   "test": "tests/test_toilaudit.py#test_approval_gate_is_toil",
-   "tests": [
+    "tests/test_toilaudit.py#test_manual_dispatch_and_queue_stall",
     "tests/test_toilaudit.py#test_approval_gate_is_toil"
    ]
   },

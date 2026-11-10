@@ -60,7 +60,10 @@
  "lifted": {
   "stylesheets/extra": []
  },
- "retired": [],
+ "retired": [
+  "docs.documentation.docs-theme.002",
+  "docs.documentation.docs-theme.003"
+ ],
  "scenarios": {
   "docs.documentation.docs-theme.001": {
    "file": "docs/specs/documentation/docs-theme/docs-site-theme.feature",
@@ -68,26 +71,6 @@
    "human": false,
    "rule": "documentation.docs-theme.no-network-loaded-assets",
    "source": "docs/stylesheets/extra.css#:root",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "docs.documentation.docs-theme.002": {
-   "file": "docs/specs/documentation/docs-theme/docs-site-theme.feature",
-   "fingerprint": "d1e8fee7d3b2",
-   "human": false,
-   "rule": "documentation.docs-theme.shared-accent-palette",
-   "source": "docs/stylesheets/extra.css#:root",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "docs.documentation.docs-theme.003": {
-   "file": "docs/specs/documentation/docs-theme/docs-site-theme.feature",
-   "fingerprint": "433084a194b6",
-   "human": false,
-   "rule": "documentation.docs-theme.legible-links-per-scheme",
-   "source": "docs/stylesheets/extra.css#[data-md-color-scheme=\"slate\"]",
    "status": "inferred",
    "test": "",
    "tests": []

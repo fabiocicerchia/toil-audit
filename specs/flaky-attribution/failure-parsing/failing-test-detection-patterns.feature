@@ -5,19 +5,6 @@ Feature: Recognising the failing test in a CI log
   Background:
     Given a flaky recovery whose failed run left a job log
 
-  @id:flaky-attribution.failure-parsing.006 @rule:flaky-attribution.failure-parsing.recognised-test-runners @inferred @source:toilaudit/patterns.py#PATTERNS
-  Scenario Outline: Failing tests are named from each supported test runner's own failure output
-    Given the failed run's log contains the line "<log line>"
-    When the operator runs the audit
-    Then the recovery is attributed to "<identity>"
-
-    Examples:
-      | log line                                                                       | identity                                   |
-      | FAILED tests/test_orders.py::test_split_by_region - AssertionError: 3 != 4     | tests/test_orders.py::test_split_by_region |
-      | ERROR tests/test_billing.py::test_invoice_totals                               | tests/test_billing.py::test_invoice_totals |
-      | rspec ./spec/orders_spec.rb:12 # Orders splits by region                       | spec/orders_spec.rb                        |
-      | <testcase classname="tests.orders" name="test_split"><failure message="nope"/> | tests.orders::test_split                   |
-
   @id:flaky-attribution.failure-parsing.007 @rule:flaky-attribution.failure-parsing.timestamped-log-lines @inferred @source:toilaudit/patterns.py#PATTERNS
   Scenario: Failures are found in real GitHub logs whose lines start with a timestamp
     Given every line of the failed run's log starts with a timestamp such as "2026-08-15T10:00:30Z"

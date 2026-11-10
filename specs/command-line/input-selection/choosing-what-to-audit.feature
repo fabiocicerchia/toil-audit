@@ -29,23 +29,3 @@ Feature: Choosing what to audit
       | --change 2026-01-15 --fix-hours nan | --fix-hours must be a finite, non-negative number  |
       | --change 2026-01-15 --fix-hours inf | --fix-hours must be a finite, non-negative number  |
       | --change 2026-01-15 --fix-hours -1  | --fix-hours must be a finite, non-negative number  |
-
-  @id:command-line.input-selection.003 @rule:command-line.input.unknown-change-is-refused @verified @source:toilaudit/__main__.py#main @test:tests/test_compare.py#test_an_unknown_commit_is_refused_rather_than_guessed
-  Scenario: A change the history cannot place is refused rather than guessed
-    Given the operator has a workflow-runs export in which no run built commit "deadbee"
-    When the operator runs toil-audit on the export with --change deadbee
-    Then the command is refused with a message starting "--change:"
-    And the exit status is 2
-    And no before/after comparison is reported
-
-  @id:command-line.input-selection.004 @rule:cost-model.rates.overridable-with-defaults @inferred @source:toilaudit/__main__.py#_build_parser
-  Scenario Outline: Engineer and runner rates default to 75 EUR an hour and 0.0074 EUR a minute and can be overridden
-    Given the operator has a workflow-runs export "runs.json"
-    When the operator runs toil-audit on runs.json <rate options>
-    Then engineer time is priced at <engineer rate> EUR per hour
-    And runner time on wasted runs is priced at <runner rate> EUR per minute
-
-    Examples:
-      | rate options                       | engineer rate | runner rate |
-      | with no rate options               | 75            | 0.0074      |
-      | with --rate 90 --runner-rate 0.008 | 90            | 0.008       |
